@@ -1,12 +1,12 @@
-/**
- * Achievement domain types.
- *
- * Known from handover doc:
- *   - Models: AchievementDefinition, UserAchievement
- *   - Achievement unlock is idempotent (unique on userId + achievementDefinitionId)
- *
- * Exact response shape for GET /api/v1/achievements is NOT documented.
- */
+export interface AchievementSummary {
+  id: string;
+  code: string;
+  title: string;
+}
 
-/** Refine after inspecting GET /api/v1/achievements */
+/**
+ * GET /api/v1/achievements is still not formally documented in the mobile repo,
+ * so keep the list response loose for now while using a typed summary shape for
+ * completion reward payloads.
+ */
 export type Achievement = Record<string, unknown>;

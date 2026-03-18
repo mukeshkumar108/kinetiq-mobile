@@ -4,6 +4,8 @@ import type {
   TaskStatusFilter,
   CreateTaskInput,
   UpdateTaskInput,
+  TaskCompletionResult,
+  TaskReopenResult,
 } from "./types";
 
 export function fetchTasks(status: TaskStatusFilter = "open"): Promise<Task[]> {
@@ -26,10 +28,10 @@ export function deleteTask(id: string): Promise<unknown> {
   return apiDelete<unknown>(`/api/v1/tasks/${id}`);
 }
 
-export function completeTask(id: string): Promise<unknown> {
-  return apiPost<unknown>(`/api/v1/tasks/${id}/complete`);
+export function completeTask(id: string): Promise<TaskCompletionResult> {
+  return apiPost<TaskCompletionResult>(`/api/v1/tasks/${id}/complete`);
 }
 
-export function reopenTask(id: string): Promise<unknown> {
-  return apiPost<unknown>(`/api/v1/tasks/${id}/reopen`);
+export function reopenTask(id: string): Promise<TaskReopenResult> {
+  return apiPost<TaskReopenResult>(`/api/v1/tasks/${id}/reopen`);
 }

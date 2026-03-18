@@ -4,6 +4,8 @@ import type {
   CreateHabitInput,
   UpdateHabitInput,
   HabitCompleteInput,
+  HabitCompletionResult,
+  HabitUncompleteResult,
 } from "./types";
 
 export function fetchHabits(includeArchived = false): Promise<Habit[]> {
@@ -28,10 +30,16 @@ export function deleteHabit(id: string): Promise<unknown> {
   return apiDelete<unknown>(`/api/v1/habits/${id}`);
 }
 
-export function completeHabit(id: string, input?: HabitCompleteInput): Promise<unknown> {
-  return apiPost<unknown>(`/api/v1/habits/${id}/complete`, input);
+export function completeHabit(
+  id: string,
+  input?: HabitCompleteInput,
+): Promise<HabitCompletionResult> {
+  return apiPost<HabitCompletionResult>(`/api/v1/habits/${id}/complete`, input);
 }
 
-export function uncompleteHabit(id: string, input?: HabitCompleteInput): Promise<unknown> {
-  return apiPost<unknown>(`/api/v1/habits/${id}/uncomplete`, input);
+export function uncompleteHabit(
+  id: string,
+  input?: HabitCompleteInput,
+): Promise<HabitUncompleteResult> {
+  return apiPost<HabitUncompleteResult>(`/api/v1/habits/${id}/uncomplete`, input);
 }

@@ -5,6 +5,12 @@ export interface Progression {
   nextLevelXp: number;
 }
 
+export interface StreakSnapshot {
+  current: number;
+  longest: number;
+  lastCompletedLocalDate: string | null;
+}
+
 export type XpSource =
   | "habit_completion"
   | "task_completion"

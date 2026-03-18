@@ -24,3 +24,29 @@ export interface UpdateTaskInput {
   description?: string | null;
   dueAt?: string | null; // ISO 8601
 }
+
+export interface TaskCompletionResult {
+  task: Task;
+  progression: {
+    level: number;
+    totalXp: number;
+    currentLevelXp: number;
+    nextLevelXp: number;
+  };
+  unlockedAchievements: {
+    id: string;
+    code: string;
+    title: string;
+  }[];
+  grantedXp: number;
+}
+
+export interface TaskReopenResult {
+  task: Task;
+  progression: {
+    level: number;
+    totalXp: number;
+    currentLevelXp: number;
+    nextLevelXp: number;
+  };
+}

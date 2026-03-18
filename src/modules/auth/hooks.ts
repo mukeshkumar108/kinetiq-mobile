@@ -1,14 +1,14 @@
 import { useAuth } from "@clerk/clerk-expo";
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/api/query-keys";
-import { fetchToday } from "./api";
+import { fetchMe } from "./api";
 
-export function useToday(timezone: string) {
+export function useMe() {
   const { isLoaded, userId } = useAuth();
 
   return useQuery({
-    queryKey: queryKeys.today(userId, timezone),
-    queryFn: () => fetchToday(timezone),
+    queryKey: queryKeys.me(userId),
+    queryFn: fetchMe,
     enabled: isLoaded && !!userId,
   });
 }

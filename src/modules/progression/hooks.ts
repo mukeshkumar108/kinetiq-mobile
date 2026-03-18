@@ -1,14 +1,14 @@
 import { useAuth } from "@clerk/clerk-expo";
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/api/query-keys";
-import { fetchToday } from "./api";
+import { fetchProgression } from "./api";
 
-export function useToday(timezone: string) {
+export function useProgression() {
   const { isLoaded, userId } = useAuth();
 
   return useQuery({
-    queryKey: queryKeys.today(userId, timezone),
-    queryFn: () => fetchToday(timezone),
+    queryKey: queryKeys.progression(userId),
+    queryFn: fetchProgression,
     enabled: isLoaded && !!userId,
   });
 }

@@ -14,7 +14,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
 import GrainyGradient from "@/shared/ui/organisms/grainy-gradient";
-import { Glow } from "@/shared/ui/base/glow";
 import { AnimatedProgressBar } from "@/shared/ui/organisms/progress";
 import { Checkbox } from "@/shared/ui/organisms/check-box";
 import { StateCard } from "@/shared/ui/feedback/StateCard";
@@ -45,7 +44,6 @@ export function TodayScreen() {
   const completeTask = useCompleteTask();
 
   const [heroProgression, setHeroProgression] = useState<Progression | null>(null);
-  const [heroGlow, setHeroGlow] = useState(false);
 
   const snapshot = today.data;
   const liveProgression = progression.data;
@@ -60,16 +58,6 @@ export function TodayScreen() {
       setHeroProgression(null);
     }
   }, [heroProgression, liveProgression]);
-
-  useEffect(() => {
-    if (!heroGlow) return;
-
-    const timeout = setTimeout(() => {
-      setHeroGlow(false);
-    }, 1800);
-
-    return () => clearTimeout(timeout);
-  }, [heroGlow]);
 
   const showRewardToast = useCallback(
     ({
@@ -116,7 +104,6 @@ export function TodayScreen() {
 
   const applyProgressionReward = useCallback((nextProgression: Progression) => {
     setHeroProgression(nextProgression);
-    setHeroGlow(true);
   }, []);
 
   const handleHabitCompletion = useCallback(
@@ -219,6 +206,32 @@ export function TodayScreen() {
     progression.refetch();
   }, [today, progression]);
 
+  const completedHabits =
+    snapshot?.habits?.filter((habit) => habit.completedToday).length ?? 0;
+  const totalHabits = snapshot?.habits?.length ?? 0;
+  const completedTasks =
+    snapshot?.tasks?.filter((task) => task.status === "completed").length ?? 0;
+  const totalTasks = snapshot?.tasks?.length ?? 0;
+  const strongestStreak = Math.max(
+    ...(snapshot?.habits.map((habit) => habit.streak.current) ?? [0]),
+  );
+
+  const momentumCopy = useMemo(() => {
+    if (completedHabits + completedTasks === 0) {
+      return "Fresh board. Start with one easy win.";
+    }
+    if (
+      completedHabits + completedTasks >= totalHabits + totalTasks &&
+      totalHabits + totalTasks > 0
+    ) {
+      return "Everything for today is handled. Ride the glow.";
+    }
+    if (strongestStreak >= 7) {
+      return "Streak energy is high. Protect the run.";
+    }
+    return "Momentum is building. Keep pressing forward.";
+  }, [completedHabits, completedTasks, totalHabits, totalTasks, strongestStreak]);
+
   if (today.isLoading && !today.data) {
     return (
       <View style={s.loadingContainer}>
@@ -249,16 +262,6 @@ export function TodayScreen() {
     day: "numeric",
   });
 
-  const completedHabits =
-    snapshot?.habits?.filter((habit) => habit.completedToday).length ?? 0;
-  const totalHabits = snapshot?.habits?.length ?? 0;
-  const completedTasks =
-    snapshot?.tasks?.filter((task) => task.status === "completed").length ?? 0;
-  const totalTasks = snapshot?.tasks?.length ?? 0;
-  const strongestStreak = Math.max(
-    ...(snapshot?.habits.map((habit) => habit.streak.current) ?? [0]),
-  );
-
   const xpPercent = displayedProgression
     ? Math.min(
         (displayedProgression.currentLevelXp / displayedProgression.nextLevelXp) *
@@ -267,19 +270,6 @@ export function TodayScreen() {
       )
     : 0;
 
-  const momentumCopy = useMemo(() => {
-    if (completedHabits + completedTasks === 0) {
-      return "Fresh board. Start with one easy win.";
-    }
-    if (completedHabits + completedTasks >= totalHabits + totalTasks && totalHabits + totalTasks > 0) {
-      return "Everything for today is handled. Ride the glow.";
-    }
-    if (strongestStreak >= 7) {
-      return "Streak energy is high. Protect the run.";
-    }
-    return "Momentum is building. Keep pressing forward.";
-  }, [completedHabits, completedTasks, totalHabits, totalTasks, strongestStreak]);
-
   return (
     <View style={s.screen}>
       <GrainyGradient
@@ -287,12 +277,14 @@ export function TodayScreen() {
         intensity={0.08}
         amplitude={0.12}
         brightness={-0.09}
+        animated={false}
         style={StyleSheet.absoluteFill}
       />
       <View style={[StyleSheet.absoluteFill, s.bgOverlay]} />
 
       <ScrollView
         style={s.container}
+        showsVerticalScrollIndicator={false}
         contentContainerStyle={[s.content, { paddingTop: insets.top + 10, paddingBottom: insets.bottom + 28 }]}
         refreshControl={
           <RefreshControl
@@ -308,79 +300,62 @@ export function TodayScreen() {
           <Text style={s.subheading}>{momentumCopy}</Text>
         </View>
 
-        <Glow
-          enabled={heroGlow}
-          color={colors.accent}
-          secondaryColor={colors.accentElectric}
-          size={10}
-          radius={28}
-          intensity={0.85}
-          style="pulse"
-        >
-          <View style={s.heroCard}>
-            <GrainyGradient
-              colors={["#1A1440", "#14213D", "#102E58", "#111827"]}
-              intensity={0.05}
-              amplitude={0.08}
-              brightness={-0.02}
-              style={StyleSheet.absoluteFill}
-            />
-            <LinearGradient
-              colors={["rgba(6,8,14,0.08)", "rgba(6,8,14,0.74)"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={StyleSheet.absoluteFill}
-            />
+        <View style={s.heroCard}>
+          <LinearGradient
+            colors={["rgba(17, 30, 59, 0.95)", "rgba(16, 18, 32, 0.95)"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
 
-            <View style={s.heroTopRow}>
-              <View>
-                <Text style={s.heroEyebrow}>Momentum meter</Text>
-                <Text style={s.heroTitle}>
-                  {displayedProgression
-                    ? `Level ${displayedProgression.level}`
-                    : "Loading energy"}
-                </Text>
-              </View>
-              <View style={s.heroBadge}>
-                <Ionicons name="flash" size={14} color={colors.accentElectric} />
-                <Text style={s.heroBadgeText}>{completedHabits + completedTasks} wins</Text>
-              </View>
+          <View style={s.heroTopRow}>
+            <View>
+              <Text style={s.heroEyebrow}>Momentum meter</Text>
+              <Text style={s.heroTitle}>
+                {displayedProgression
+                  ? `Level ${displayedProgression.level}`
+                  : "Loading energy"}
+              </Text>
             </View>
-
-            {displayedProgression ? (
-              <>
-                <Text style={s.xpReadout}>
-                  {displayedProgression.currentLevelXp}
-                  <Text style={s.xpReadoutMuted}>
-                    {" "}
-                    / {displayedProgression.nextLevelXp} XP
-                  </Text>
-                </Text>
-                <AnimatedProgressBar
-                  progress={xpPercent / 100}
-                  progressColor={colors.xp}
-                  trackColor="rgba(255,255,255,0.08)"
-                  height={10}
-                  borderRadius={999}
-                  useGradient
-                  gradientColors={[colors.accentElectric, colors.accent]}
-                />
-                <View style={s.heroStatsRow}>
-                  <View style={s.heroStatChip}>
-                    <Ionicons name="trophy" size={13} color={colors.xp} />
-                    <Text style={s.heroStatText}>{displayedProgression.totalXp} total XP</Text>
-                  </View>
-                  <View style={s.heroStatChip}>
-                    <Ionicons name="flame" size={13} color={colors.streak} />
-                    <Text style={s.heroStatText}>
-                      {strongestStreak > 0 ? `${strongestStreak} day streak` : "Start a streak"}
-                    </Text>
-                  </View>
-                </View>
-              </>
-            ) : null}
+            <View style={s.heroBadge}>
+              <Ionicons name="flash" size={14} color={colors.accentElectric} />
+              <Text style={s.heroBadgeText}>{completedHabits + completedTasks} wins</Text>
+            </View>
           </View>
-        </Glow>
+
+          {displayedProgression ? (
+            <>
+              <Text style={s.xpReadout}>
+                {displayedProgression.currentLevelXp}
+                <Text style={s.xpReadoutMuted}>
+                  {" "}
+                  / {displayedProgression.nextLevelXp} XP
+                </Text>
+              </Text>
+              <AnimatedProgressBar
+                progress={xpPercent / 100}
+                progressColor={colors.xp}
+                trackColor="rgba(255,255,255,0.08)"
+                height={10}
+                borderRadius={999}
+                useGradient
+                gradientColors={[colors.accentElectric, colors.accent]}
+              />
+              <View style={s.heroStatsRow}>
+                <View style={s.heroStatChip}>
+                  <Ionicons name="trophy" size={13} color={colors.xp} />
+                  <Text style={s.heroStatText}>{displayedProgression.totalXp} total XP</Text>
+                </View>
+                <View style={s.heroStatChip}>
+                  <Ionicons name="flame" size={13} color={colors.streak} />
+                  <Text style={s.heroStatText}>
+                    {strongestStreak > 0 ? `${strongestStreak} day streak` : "Start a streak"}
+                  </Text>
+                </View>
+              </View>
+            </>
+          ) : null}
+        </View>
 
         <View style={s.quickStatsRow}>
           <View style={s.quickStatCard}>

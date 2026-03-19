@@ -2,6 +2,19 @@
 
 Concise engineering changelog for Kinetiq Mobile.
 
+## EAS Dev Build Prep (2026-03-19)
+### Summary
+- Prepared the Expo repo for iPhone development builds with EAS.
+
+### Key Changes
+- Added `expo-dev-client` so the app can run as a custom dev client on a physical iPhone.
+- Added `eas.json` with a minimal internal-distribution development profile.
+- Added iOS bundle/build identifiers and enabled broad ATS loading for local HTTP backend testing during development.
+- Added a `start:dev-client` script for launching Metro in dev-client mode.
+- Added pnpm build trust for Skia so native iOS binaries are available during pod install and EAS builds.
+- Linked the project to EAS, configured updates metadata, and switched to a unique iOS bundle identifier.
+- Simplified the auth and Today surfaces after device testing by removing hidden ambient animation and fixing the broken Google CTA treatment.
+
 ## Product UI Pass: Auth and Today (2026-03-19)
 ### Summary
 - Shipped the first premium product-facing UI pass focused on auth and the Today experience.

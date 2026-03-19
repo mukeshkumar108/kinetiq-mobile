@@ -15,7 +15,6 @@ import { useOAuth, useSignIn, useSignUp } from "@clerk/clerk-expo";
 import * as WebBrowser from "expo-web-browser";
 import { Ionicons } from "@expo/vector-icons";
 
-import { Glow } from "@/shared/ui/base/glow";
 import { Button } from "@/shared/ui/base/button";
 import SpinButton from "@/shared/ui/micro-interactions/spin-button";
 import GrainyGradient from "@/shared/ui/organisms/grainy-gradient";
@@ -187,35 +186,22 @@ export function SignInScreen() {
     if (screen === "choice") {
       return (
         <>
-          <Glow
-            color={colors.accent}
-            secondaryColor={colors.accentElectric}
-            radius={22}
-            size={7}
-            intensity={0.6}
-            style="breathe"
+          <Pressable
+            style={[s.googlePressable, loading && s.googlePressableDisabled]}
+            onPress={() => void handleGoogle()}
+            disabled={loading}
           >
-            <View style={s.primaryButtonWrap}>
-              <Button
-                onPress={handleGoogle}
-                isLoading={loading}
-                loadingText="Connecting"
-                loadingTextColor={colors.text}
-                loadingTextBackgroundColor={colors.accent}
-                width={"100%" as never}
-                height={58}
-                borderRadius={18}
-                backgroundColor={colors.cardStrong}
-                gradientColors={[colors.accent, colors.accentElectric]}
-                style={s.googleButton}
-              >
+            <LinearButtonSurface>
+              {loading ? (
+                <ActivityIndicator color={colors.bg} />
+              ) : (
                 <View style={s.googleInner}>
-                  <Ionicons name="logo-google" size={18} color={colors.text} />
+                  <Ionicons name="logo-google" size={18} color={colors.bg} />
                   <Text style={s.googleText}>Continue with Google</Text>
                 </View>
-              </Button>
-            </View>
-          </Glow>
+              )}
+            </LinearButtonSurface>
+          </Pressable>
 
           <View style={s.dividerRow}>
             <View style={s.dividerLine} />
@@ -356,6 +342,7 @@ export function SignInScreen() {
         intensity={0.075}
         amplitude={0.12}
         brightness={-0.08}
+        animated={false}
         style={StyleSheet.absoluteFill}
       />
       <View style={[StyleSheet.absoluteFill, s.bgOverlay]} />
@@ -365,6 +352,7 @@ export function SignInScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView
+          showsVerticalScrollIndicator={false}
           contentContainerStyle={[
             s.scrollContent,
             { paddingTop: insets.top + 28, paddingBottom: Math.max(insets.bottom, 24) + 24 },
@@ -411,6 +399,14 @@ export function SignInScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+    </View>
+  );
+}
+
+function LinearButtonSurface({ children }: { children: React.ReactNode }) {
+  return (
+    <View style={s.googleSurface}>
+      <View style={s.googleGradientSurface}>{children}</View>
     </View>
   );
 }
@@ -495,11 +491,24 @@ const s = StyleSheet.create({
     shadowRadius: 30,
     shadowOffset: { width: 0, height: 18 },
   },
-  primaryButtonWrap: {
+  googlePressable: {
     width: "100%",
   },
-  googleButton: {
-    width: "100%",
+  googlePressableDisabled: {
+    opacity: 0.72,
+  },
+  googleSurface: {
+    borderRadius: 18,
+    padding: 1,
+    backgroundColor: "rgba(255,255,255,0.1)",
+  },
+  googleGradientSurface: {
+    minHeight: 58,
+    borderRadius: 17,
+    backgroundColor: colors.text,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 18,
   },
   googleInner: {
     flexDirection: "row",
@@ -509,7 +518,7 @@ const s = StyleSheet.create({
   googleText: {
     fontSize: 16,
     fontWeight: "700",
-    color: colors.text,
+    color: colors.bg,
   },
   dividerRow: {
     flexDirection: "row",

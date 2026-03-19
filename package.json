@@ -4,6 +4,7 @@
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
+    "start:dev-client": "expo start --dev-client",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
@@ -20,6 +21,7 @@
     "expo": "~55.0.7",
     "expo-blur": "~55.0.10",
     "expo-constants": "~55.0.8",
+    "expo-dev-client": "^55.0.17",
     "expo-device": "~55.0.10",
     "expo-haptics": "~55.0.9",
     "expo-linear-gradient": "~55.0.9",
@@ -29,6 +31,7 @@
     "expo-secure-store": "~55.0.9",
     "expo-status-bar": "~55.0.4",
     "expo-symbols": "~55.0.5",
+    "expo-updates": "~55.0.14",
     "expo-web-browser": "^55.0.10",
     "react": "19.2.0",
     "react-dom": "^19.2.4",
@@ -45,6 +48,11 @@
     "@types/node": "^25.5.0",
     "@types/react": "~19.2.2",
     "typescript": "~5.9.2"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@shopify/react-native-skia"
+    ]
   },
   "private": true,
   "packageManager": "pnpm@10.12.4+sha512.5ea8b0deed94ed68691c9bad4c955492705c5eeb8a87ef86bc62c74a26b037b08ff9570f108b2e4dbd1dd1a9186fea925e527f141c648e85af45631074680184"

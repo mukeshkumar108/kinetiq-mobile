@@ -24,6 +24,15 @@ WebBrowser.maybeCompleteAuthSession();
 
 type Screen = "choice" | "sign-in" | "sign-up" | "verify-email";
 
+const vibe = {
+  cyan: "#34C6FF",
+  ember: "#FF6B2C",
+  emberSoft: "#FF8A4C",
+  panel: "rgba(13, 15, 20, 0.82)",
+  line: "rgba(255,255,255,0.1)",
+  textSoft: "#C7D0EA",
+};
+
 export function SignInScreen() {
   const insets = useSafeAreaInsets();
   const { signIn, setActive: setSignInActive, isLoaded: signInLoaded } = useSignIn();
@@ -47,27 +56,27 @@ export function SignInScreen() {
     switch (screen) {
       case "sign-in":
         return {
-          eyebrow: "Come back sharper",
-          title: "Lock in for today.",
-          subtitle: "Your habits, focus tasks, XP, and streaks pick up right where you left them.",
+          eyebrow: "Back on the floor",
+          title: "Train your momentum.",
+          subtitle: "Your rituals, focus blocks, and streak pressure are waiting exactly where you left them.",
         };
       case "sign-up":
         return {
-          eyebrow: "Start the loop",
-          title: "Build momentum that sticks.",
-          subtitle: "Kinetiq turns habits and to-dos into a dark, rewarding daily rhythm.",
+          eyebrow: "Enter the circuit",
+          title: "Build a harder daily rhythm.",
+          subtitle: "Kinetiq turns habits and focus into a late-night training board for your real life.",
         };
       case "verify-email":
         return {
-          eyebrow: "One more step",
-          title: "Check your inbox.",
-          subtitle: `We sent a code to ${email || "your email"} to secure the session.`,
+          eyebrow: "Final gate",
+          title: "Confirm your entry.",
+          subtitle: `We sent a code to ${email || "your email"} so this session stays locked to you.`,
         };
       default:
         return {
           eyebrow: "Kinetiq",
-          title: "Habits with velocity.",
-          subtitle: "A momentum-first space for rituals, focus, streaks, and daily wins.",
+          title: "Discipline after dark.",
+          subtitle: "A high-energy habits and focus system built like a scoreboard, not a spreadsheet.",
         };
     }
   }, [email, screen]);
@@ -197,7 +206,7 @@ export function SignInScreen() {
               ) : (
                 <View style={s.googleInner}>
                   <Ionicons name="logo-google" size={18} color={colors.bg} />
-                  <Text style={s.googleText}>Continue with Google</Text>
+                  <Text style={s.googleText}>Enter with Google</Text>
                 </View>
               )}
             </LinearButtonSurface>
@@ -205,7 +214,7 @@ export function SignInScreen() {
 
           <View style={s.dividerRow}>
             <View style={s.dividerLine} />
-            <Text style={s.dividerText}>or use email</Text>
+            <Text style={s.dividerText}>or run email</Text>
             <View style={s.dividerLine} />
           </View>
 
@@ -217,7 +226,7 @@ export function SignInScreen() {
             }}
           >
             <Text style={s.secondaryActionText}>Sign in with email</Text>
-            <Ionicons name="arrow-forward" size={16} color={colors.textSoft} />
+            <Ionicons name="arrow-forward" size={16} color={vibe.ember} />
           </Pressable>
 
           <Pressable
@@ -258,8 +267,8 @@ export function SignInScreen() {
               disabled={loading}
               onPress={() => void handleVerify()}
               colors={{
-                idle: { background: colors.text, text: colors.bg },
-                active: { background: colors.accent, text: colors.text },
+                idle: { background: vibe.ember, text: colors.text },
+                active: { background: vibe.emberSoft, text: colors.text },
               }}
               buttonStyle={{
                 paddingHorizontal: 30,
@@ -311,8 +320,8 @@ export function SignInScreen() {
             disabled={loading}
             onPress={() => void primaryAction()}
             colors={{
-              idle: { background: colors.text, text: colors.bg },
-              active: { background: colors.accent, text: colors.text },
+              idle: { background: vibe.ember, text: colors.text },
+              active: { background: vibe.emberSoft, text: colors.text },
             }}
             buttonStyle={{
               paddingHorizontal: 30,
@@ -338,10 +347,10 @@ export function SignInScreen() {
   return (
     <View style={s.screen}>
       <GrainyGradient
-        colors={["#0A0F1F", "#1A1440", "#102A52", "#101723"]}
-        intensity={0.075}
-        amplitude={0.12}
-        brightness={-0.08}
+        colors={["#050608", "#140A0A", "#07131D", "#1B0F0A"]}
+        intensity={0.04}
+        amplitude={0.05}
+        brightness={-0.12}
         animated={false}
         style={StyleSheet.absoluteFill}
       />
@@ -366,16 +375,16 @@ export function SignInScreen() {
 
             <View style={s.momentumRow}>
               <View style={s.momentumChip}>
-                <Ionicons name="flash" size={12} color={colors.accentElectric} />
-                <Text style={s.momentumChipText}>Momentum-first</Text>
+                <Ionicons name="flash" size={12} color={vibe.cyan} />
+                <Text style={s.momentumChipText}>Momentum board</Text>
               </View>
               <View style={s.momentumChip}>
-                <Ionicons name="flame" size={12} color={colors.streak} />
-                <Text style={s.momentumChipText}>Streak energy</Text>
+                <Ionicons name="flame" size={12} color={vibe.ember} />
+                <Text style={s.momentumChipText}>Streak heat</Text>
               </View>
               <View style={s.momentumChip}>
-                <Ionicons name="sparkles" size={12} color={colors.xp} />
-                <Text style={s.momentumChipText}>XP rewards</Text>
+                <Ionicons name="trophy" size={12} color={colors.text} />
+                <Text style={s.momentumChipText}>XP pressure</Text>
               </View>
             </View>
           </View>
@@ -420,7 +429,7 @@ const s = StyleSheet.create({
     flex: 1,
   },
   bgOverlay: {
-    backgroundColor: "rgba(4, 6, 12, 0.52)",
+    backgroundColor: "rgba(2, 3, 6, 0.6)",
   },
   loadingScreen: {
     flex: 1,
@@ -441,21 +450,21 @@ const s = StyleSheet.create({
   eyebrow: {
     fontSize: 13,
     fontWeight: "700",
-    letterSpacing: 1.3,
+    letterSpacing: 2.2,
     textTransform: "uppercase",
-    color: colors.accentElectric,
+    color: vibe.cyan,
   },
   title: {
-    fontSize: 40,
-    lineHeight: 42,
+    fontSize: 44,
+    lineHeight: 46,
     fontWeight: "800",
     color: colors.text,
   },
   subtitle: {
-    maxWidth: 320,
+    maxWidth: 336,
     fontSize: 16,
     lineHeight: 23,
-    color: colors.textSoft,
+    color: vibe.textSoft,
   },
   momentumRow: {
     flexDirection: "row",
@@ -470,9 +479,9 @@ const s = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: "rgba(10, 14, 22, 0.46)",
+    backgroundColor: "rgba(255,255,255,0.035)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: vibe.line,
   },
   momentumChipText: {
     fontSize: 12,
@@ -480,16 +489,16 @@ const s = StyleSheet.create({
     color: colors.text,
   },
   card: {
-    backgroundColor: "rgba(11, 14, 20, 0.78)",
-    borderRadius: 26,
+    backgroundColor: vibe.panel,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: colors.cardBorderStrong,
-    padding: 18,
-    gap: 14,
+    borderColor: "rgba(255, 107, 44, 0.16)",
+    padding: 20,
+    gap: 16,
     shadowColor: "#000",
-    shadowOpacity: 0.28,
-    shadowRadius: 30,
-    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.34,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 12 },
   },
   googlePressable: {
     width: "100%",
@@ -498,14 +507,14 @@ const s = StyleSheet.create({
     opacity: 0.72,
   },
   googleSurface: {
-    borderRadius: 18,
+    borderRadius: 20,
     padding: 1,
-    backgroundColor: "rgba(255,255,255,0.1)",
+    backgroundColor: "rgba(255,255,255,0.14)",
   },
   googleGradientSurface: {
-    minHeight: 58,
-    borderRadius: 17,
-    backgroundColor: colors.text,
+    minHeight: 60,
+    borderRadius: 19,
+    backgroundColor: vibe.cyan,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 18,
@@ -533,9 +542,9 @@ const s = StyleSheet.create({
   },
   dividerText: {
     fontSize: 12,
-    color: colors.textMuted,
+    color: vibe.textSoft,
     textTransform: "uppercase",
-    letterSpacing: 1,
+    letterSpacing: 1.8,
   },
   secondaryAction: {
     flexDirection: "row",
@@ -543,10 +552,10 @@ const s = StyleSheet.create({
     justifyContent: "space-between",
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: "rgba(255, 107, 44, 0.15)",
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: "rgba(255,255,255,0.03)",
+    backgroundColor: "rgba(255, 107, 44, 0.05)",
   },
   secondaryActionText: {
     fontSize: 15,
@@ -560,7 +569,7 @@ const s = StyleSheet.create({
   tertiaryActionText: {
     fontSize: 14,
     fontWeight: "600",
-    color: colors.textSoft,
+    color: vibe.textSoft,
   },
   fieldWrap: {
     gap: 8,
@@ -568,7 +577,9 @@ const s = StyleSheet.create({
   fieldLabel: {
     fontSize: 13,
     fontWeight: "700",
-    color: colors.textSoft,
+    color: vibe.textSoft,
+    textTransform: "uppercase",
+    letterSpacing: 1.2,
   },
   input: {
     borderRadius: 18,

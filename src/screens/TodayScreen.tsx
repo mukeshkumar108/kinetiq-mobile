@@ -17,8 +17,8 @@ import GrainyGradient from "@/shared/ui/organisms/grainy-gradient";
 import { AnimatedProgressBar } from "@/shared/ui/organisms/progress";
 import { Checkbox } from "@/shared/ui/organisms/check-box";
 import { StateCard } from "@/shared/ui/feedback/StateCard";
-import { RewardToastContent } from "@/shared/ui/feedback/RewardToastContent";
-import { Toast } from "@/shared/ui/molecules/Toast";
+import { BottomSheet } from "@/shared/ui/feedback/BottomSheet";
+import { SuccessSheet } from "@/shared/ui/feedback/SuccessSheet";
 import { useToday } from "@/modules/today/hooks";
 import { useProgression } from "@/modules/progression/hooks";
 import { useCompleteHabit, useUncompleteHabit } from "@/modules/habits/hooks";
@@ -34,6 +34,23 @@ import { colors } from "@/shared/theme/colors";
 
 const HABIT_FALLBACK_XP = 10;
 
+const vibe = {
+  cyan: "#34C6FF",
+  ember: "#FF6B2C",
+  emberSoft: "#FF8A4C",
+  panel: "rgba(12, 14, 20, 0.9)",
+  panelAlt: "rgba(18, 19, 27, 0.92)",
+  line: "rgba(255,255,255,0.09)",
+  textSoft: "#CBD4EE",
+};
+
+interface RewardData {
+  emoji: string;
+  title: string;
+  subtitle: string;
+  meta?: string;
+}
+
 export function TodayScreen() {
   const insets = useSafeAreaInsets();
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -44,6 +61,8 @@ export function TodayScreen() {
   const completeTask = useCompleteTask();
 
   const [heroProgression, setHeroProgression] = useState<Progression | null>(null);
+  const [rewardSheet, setRewardSheet] = useState<RewardData | null>(null);
+  const [isManualRefresh, setIsManualRefresh] = useState(false);
 
   const snapshot = today.data;
   const liveProgression = progression.data;
@@ -59,49 +78,6 @@ export function TodayScreen() {
     }
   }, [heroProgression, liveProgression]);
 
-  const showRewardToast = useCallback(
-    ({
-      title,
-      subtitle,
-      xp,
-      streak,
-      achievements,
-    }: {
-      title: string;
-      subtitle: string;
-      xp?: number;
-      streak?: number;
-      achievements?: { id: string; code: string; title: string }[];
-    }) => {
-      Toast.show(
-        (
-          <RewardToastContent
-            title={title}
-            subtitle={subtitle}
-            xp={xp}
-            streak={streak}
-            achievements={achievements}
-          />
-        ),
-        {
-          position: "top",
-          duration: achievements?.length ? 3600 : 2600,
-          backgroundColor: "rgba(11, 15, 23, 0.94)",
-          style: {
-            borderRadius: 20,
-            borderWidth: 1,
-            borderColor: "rgba(167, 139, 250, 0.28)",
-            shadowColor: "#000",
-            shadowOpacity: 0.25,
-            shadowRadius: 22,
-            shadowOffset: { width: 0, height: 14 },
-          },
-        },
-      );
-    },
-    [],
-  );
-
   const applyProgressionReward = useCallback((nextProgression: Progression) => {
     setHeroProgression(nextProgression);
   }, []);
@@ -116,27 +92,30 @@ export function TodayScreen() {
       );
 
       applyProgressionReward(result.progression);
-      showRewardToast({
-        title: habit.title,
-        subtitle:
-          result.unlockedAchievements.length > 0
-            ? "Momentum locked in. You unlocked something new."
-            : "Daily ritual logged. Keep the chain alive.",
-        xp: rewardXp,
-        streak: result.streak.current,
-        achievements: result.unlockedAchievements,
+      setRewardSheet({
+        emoji: "🔥",
+        title: "Habit locked in",
+        subtitle: `${habit.title} — +${rewardXp} XP earned.`,
+        meta:
+          result.streak.current > 0
+            ? `${result.streak.current} day streak alive`
+            : undefined,
       });
     },
-    [applyProgressionReward, displayedProgression?.totalXp, liveProgression?.totalXp, showRewardToast],
+    [
+      applyProgressionReward,
+      displayedProgression?.totalXp,
+      liveProgression?.totalXp,
+    ],
   );
 
   const handleHabitUndo = useCallback(
     (result: HabitUncompleteResult, habit: TodayHabit) => {
       applyProgressionReward(result.progression);
-      Toast.show(`${habit.title} removed from today`, {
-        position: "top",
-        duration: 1800,
-        backgroundColor: "rgba(18, 22, 31, 0.96)",
+      setRewardSheet({
+        emoji: "↩️",
+        title: "Habit reopened",
+        subtitle: `${habit.title} is back on your list.`,
       });
     },
     [applyProgressionReward],
@@ -145,17 +124,13 @@ export function TodayScreen() {
   const handleTaskReward = useCallback(
     (result: TaskCompletionResult, task: TodayTask) => {
       applyProgressionReward(result.progression);
-      showRewardToast({
-        title: task.title,
-        subtitle:
-          result.unlockedAchievements.length > 0
-            ? "Focus task cleared. Bonus momentum unlocked."
-            : "Focus task complete. The board just got lighter.",
-        xp: result.grantedXp,
-        achievements: result.unlockedAchievements,
+      setRewardSheet({
+        emoji: "🎯",
+        title: "Task cleared",
+        subtitle: `${task.title} — +${result.grantedXp} XP earned.`,
       });
     },
-    [applyProgressionReward, showRewardToast],
+    [applyProgressionReward],
   );
 
   const handleHabitToggle = useCallback(
@@ -202,8 +177,10 @@ export function TodayScreen() {
   );
 
   const onRefresh = useCallback(() => {
-    today.refetch();
-    progression.refetch();
+    setIsManualRefresh(true);
+    Promise.all([today.refetch(), progression.refetch()]).finally(() => {
+      setIsManualRefresh(false);
+    });
   }, [today, progression]);
 
   const completedHabits =
@@ -218,18 +195,18 @@ export function TodayScreen() {
 
   const momentumCopy = useMemo(() => {
     if (completedHabits + completedTasks === 0) {
-      return "Fresh board. Start with one easy win.";
+      return "Your board is quiet. This is where the bigger picture starts.";
     }
     if (
       completedHabits + completedTasks >= totalHabits + totalTasks &&
       totalHabits + totalTasks > 0
     ) {
-      return "Everything for today is handled. Ride the glow.";
+      return "Everything is clear. Sit with the win and track the momentum.";
     }
     if (strongestStreak >= 7) {
-      return "Streak energy is high. Protect the run.";
+      return "The streak is real. This is the view that shows it.";
     }
-    return "Momentum is building. Keep pressing forward.";
+    return "Your stats, streaks, and cleared work all live here.";
   }, [completedHabits, completedTasks, totalHabits, totalTasks, strongestStreak]);
 
   if (today.isLoading && !today.data) {
@@ -273,10 +250,10 @@ export function TodayScreen() {
   return (
     <View style={s.screen}>
       <GrainyGradient
-        colors={["#05070C", "#0A1330", "#1B1550", "#0C1222"]}
-        intensity={0.08}
-        amplitude={0.12}
-        brightness={-0.09}
+        colors={["#040507", "#150809", "#09111A", "#1A0D08"]}
+        intensity={0.03}
+        amplitude={0.04}
+        brightness={-0.12}
         animated={false}
         style={StyleSheet.absoluteFill}
       />
@@ -285,24 +262,27 @@ export function TodayScreen() {
       <ScrollView
         style={s.container}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[s.content, { paddingTop: insets.top + 10, paddingBottom: insets.bottom + 28 }]}
+        contentContainerStyle={[
+          s.content,
+          { paddingTop: insets.top + 10, paddingBottom: insets.bottom + 28 },
+        ]}
         refreshControl={
           <RefreshControl
-            refreshing={today.isFetching || progression.isFetching}
+            refreshing={isManualRefresh}
             onRefresh={onRefresh}
-            tintColor={colors.accentElectric}
+            tintColor={vibe.cyan}
           />
         }
       >
         <View style={s.heroHeader}>
           <Text style={s.dateLabel}>{dateStr}</Text>
-          <Text style={s.heading}>Today</Text>
+          <Text style={s.heading}>Progress</Text>
           <Text style={s.subheading}>{momentumCopy}</Text>
         </View>
 
         <View style={s.heroCard}>
           <LinearGradient
-            colors={["rgba(17, 30, 59, 0.95)", "rgba(16, 18, 32, 0.95)"]}
+            colors={["rgba(15, 34, 48, 0.96)", "rgba(27, 14, 12, 0.96)"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={StyleSheet.absoluteFill}
@@ -310,7 +290,7 @@ export function TodayScreen() {
 
           <View style={s.heroTopRow}>
             <View>
-              <Text style={s.heroEyebrow}>Momentum meter</Text>
+              <Text style={s.heroEyebrow}>Performance board</Text>
               <Text style={s.heroTitle}>
                 {displayedProgression
                   ? `Level ${displayedProgression.level}`
@@ -318,8 +298,8 @@ export function TodayScreen() {
               </Text>
             </View>
             <View style={s.heroBadge}>
-              <Ionicons name="flash" size={14} color={colors.accentElectric} />
-              <Text style={s.heroBadgeText}>{completedHabits + completedTasks} wins</Text>
+              <Ionicons name="flash" size={14} color={vibe.cyan} />
+              <Text style={s.heroBadgeText}>{completedHabits + completedTasks} reps</Text>
             </View>
           </View>
 
@@ -339,17 +319,21 @@ export function TodayScreen() {
                 height={10}
                 borderRadius={999}
                 useGradient
-                gradientColors={[colors.accentElectric, colors.accent]}
+                gradientColors={[vibe.cyan, vibe.ember]}
               />
               <View style={s.heroStatsRow}>
                 <View style={s.heroStatChip}>
-                  <Ionicons name="trophy" size={13} color={colors.xp} />
-                  <Text style={s.heroStatText}>{displayedProgression.totalXp} total XP</Text>
+                  <Ionicons name="trophy" size={13} color={vibe.cyan} />
+                  <Text style={s.heroStatText}>
+                    {displayedProgression.totalXp} total XP
+                  </Text>
                 </View>
                 <View style={s.heroStatChip}>
-                  <Ionicons name="flame" size={13} color={colors.streak} />
+                  <Ionicons name="flame" size={13} color={vibe.ember} />
                   <Text style={s.heroStatText}>
-                    {strongestStreak > 0 ? `${strongestStreak} day streak` : "Start a streak"}
+                    {strongestStreak > 0
+                      ? `${strongestStreak} night streak`
+                      : "Start a streak"}
                   </Text>
                 </View>
               </View>
@@ -359,29 +343,38 @@ export function TodayScreen() {
 
         <View style={s.quickStatsRow}>
           <View style={s.quickStatCard}>
-            <Text style={s.quickStatValue}>{completedHabits}/{totalHabits || 0}</Text>
-            <Text style={s.quickStatLabel}>Habits landed</Text>
+            <Text style={s.quickStatValue}>
+              {completedHabits}/{totalHabits || 0}
+            </Text>
+            <Text style={s.quickStatLabel}>Rituals landed</Text>
           </View>
           <View style={s.quickStatCard}>
-            <Text style={s.quickStatValue}>{completedTasks}/{totalTasks || 0}</Text>
-            <Text style={s.quickStatLabel}>Tasks cleared</Text>
+            <Text style={s.quickStatValue}>
+              {completedTasks}/{totalTasks || 0}
+            </Text>
+            <Text style={s.quickStatLabel}>Focus cleared</Text>
           </View>
         </View>
 
         <View style={s.section}>
           <View style={s.sectionHeader}>
             <View>
-              <Text style={s.sectionEyebrow}>Rituals</Text>
+              <Text style={s.sectionEyebrow}>Training</Text>
               <Text style={s.sectionTitle}>Habits</Text>
             </View>
-            <Text style={s.sectionCount}>{completedHabits}/{totalHabits}</Text>
+            <Text style={s.sectionCount}>
+              {completedHabits}/{totalHabits}
+            </Text>
           </View>
 
           {totalHabits === 0 ? (
             <View style={s.emptyCard}>
               <Ionicons name="leaf-outline" size={30} color={colors.textMuted} />
               <Text style={s.emptyTitle}>No habits yet</Text>
-              <Text style={s.emptyText}>Create daily rituals in Manage so this screen can start working for you.</Text>
+              <Text style={s.emptyText}>
+                Create daily rituals in Manage so this board has something to
+                push forward.
+              </Text>
             </View>
           ) : (
             <View style={s.listCard}>
@@ -400,7 +393,7 @@ export function TodayScreen() {
                     {habit.completedToday ? (
                       <Ionicons name="checkmark" size={16} color={colors.text} />
                     ) : (
-                      <Ionicons name="sparkles" size={14} color={colors.accentElectric} />
+                      <Ionicons name="flash" size={14} color={vibe.cyan} />
                     )}
                   </View>
                   <View style={s.rowContent}>
@@ -414,17 +407,17 @@ export function TodayScreen() {
                     </Text>
                     <Text style={s.rowSubtitle}>
                       {habit.completedToday
-                        ? "Locked in for today"
+                        ? "Locked in for tonight"
                         : habit.streak.current > 0
-                          ? `${habit.streak.current} day streak running`
-                          : "Tap to build momentum"}
+                          ? `${habit.streak.current} night streak running`
+                          : "Tap to keep the pressure on"}
                     </Text>
                   </View>
                   <View style={s.rowMeta}>
                     <Text style={s.rowRewardText}>+10 XP</Text>
                     {habit.streak.current > 0 ? (
                       <View style={s.streakBadge}>
-                        <Ionicons name="flame" size={12} color={colors.streak} />
+                        <Ionicons name="flame" size={12} color={vibe.ember} />
                         <Text style={s.streakText}>{habit.streak.current}</Text>
                       </View>
                     ) : null}
@@ -438,17 +431,26 @@ export function TodayScreen() {
         <View style={s.section}>
           <View style={s.sectionHeader}>
             <View>
-              <Text style={s.sectionEyebrow}>Focus</Text>
+              <Text style={s.sectionEyebrow}>Sprint</Text>
               <Text style={s.sectionTitle}>Tasks</Text>
             </View>
-            <Text style={s.sectionCount}>{completedTasks}/{totalTasks}</Text>
+            <Text style={s.sectionCount}>
+              {completedTasks}/{totalTasks}
+            </Text>
           </View>
 
           {totalTasks === 0 ? (
             <View style={s.emptyCard}>
-              <Ionicons name="checkbox-outline" size={30} color={colors.textMuted} />
+              <Ionicons
+                name="checkbox-outline"
+                size={30}
+                color={colors.textMuted}
+              />
               <Text style={s.emptyTitle}>No tasks loaded</Text>
-              <Text style={s.emptyText}>Add up to three focus tasks in Manage so Today feels like a board, not a blank slate.</Text>
+              <Text style={s.emptyText}>
+                Add up to three focus tasks in Manage so Today feels like a
+                performance board, not dead space.
+              </Text>
             </View>
           ) : (
             <View style={s.listCard}>
@@ -467,7 +469,7 @@ export function TodayScreen() {
                     <Checkbox
                       checked={task.status === "completed"}
                       checkmarkColor={
-                        task.status === "completed" ? colors.xp : colors.accentElectric
+                        task.status === "completed" ? colors.xp : vibe.cyan
                       }
                       size={24}
                       showBorder
@@ -485,8 +487,8 @@ export function TodayScreen() {
                     </Text>
                     <Text style={s.rowSubtitle}>
                       {task.status === "completed"
-                        ? "Finished. Nice clean hit."
-                        : "One decisive push and this board opens up."}
+                        ? "Finished. Clean hit."
+                        : "One decisive push and the lane opens up."}
                     </Text>
                   </View>
                   <Text style={s.rowRewardText}>+25 XP</Text>
@@ -496,6 +498,21 @@ export function TodayScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* Reward bottom sheet */}
+      <BottomSheet
+        visible={rewardSheet !== null}
+        onDismiss={() => setRewardSheet(null)}
+      >
+        {rewardSheet && (
+          <SuccessSheet
+            emoji={rewardSheet.emoji}
+            title={rewardSheet.title}
+            subtitle={rewardSheet.subtitle}
+            meta={rewardSheet.meta}
+          />
+        )}
+      </BottomSheet>
     </View>
   );
 }
@@ -509,7 +526,7 @@ const s = StyleSheet.create({
     flex: 1,
   },
   bgOverlay: {
-    backgroundColor: "rgba(4, 6, 10, 0.48)",
+    backgroundColor: "rgba(3, 4, 7, 0.62)",
   },
   content: {
     paddingHorizontal: 18,
@@ -526,29 +543,27 @@ const s = StyleSheet.create({
     gap: 4,
   },
   dateLabel: {
-    fontSize: 13,
-    fontWeight: "700",
-    letterSpacing: 1.1,
-    textTransform: "uppercase",
-    color: colors.accentElectric,
+    fontSize: 20,
+    fontWeight: "600",
+    color: vibe.textSoft,
   },
   heading: {
-    fontSize: 34,
+    fontSize: 36,
     fontWeight: "800",
     color: colors.text,
   },
   subheading: {
     fontSize: 15,
     lineHeight: 21,
-    color: colors.textSoft,
+    color: vibe.textSoft,
   },
   heroCard: {
     overflow: "hidden",
-    borderRadius: 28,
+    borderRadius: 24,
     padding: 20,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.09)",
-    backgroundColor: "rgba(9, 12, 18, 0.78)",
+    borderColor: "rgba(255, 107, 44, 0.14)",
+    backgroundColor: vibe.panel,
     gap: 14,
   },
   heroTopRow: {
@@ -558,9 +573,11 @@ const s = StyleSheet.create({
     gap: 12,
   },
   heroEyebrow: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "700",
-    color: colors.textSoft,
+    color: vibe.textSoft,
+    textTransform: "uppercase",
+    letterSpacing: 1.5,
   },
   heroTitle: {
     fontSize: 26,
@@ -575,9 +592,9 @@ const s = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: "rgba(10, 15, 24, 0.5)",
+    backgroundColor: "rgba(255,255,255,0.04)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: vibe.line,
   },
   heroBadgeText: {
     fontSize: 12,
@@ -592,7 +609,7 @@ const s = StyleSheet.create({
   xpReadoutMuted: {
     fontSize: 15,
     fontWeight: "600",
-    color: colors.textSoft,
+    color: vibe.textSoft,
   },
   heroStatsRow: {
     flexDirection: "row",
@@ -606,7 +623,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 9,
     borderRadius: 999,
-    backgroundColor: "rgba(7, 11, 20, 0.5)",
+    backgroundColor: "rgba(255,255,255,0.04)",
   },
   heroStatText: {
     fontSize: 12,
@@ -619,10 +636,10 @@ const s = StyleSheet.create({
   },
   quickStatCard: {
     flex: 1,
-    backgroundColor: colors.card,
-    borderRadius: 22,
+    backgroundColor: vibe.panelAlt,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
+    borderColor: vibe.line,
     paddingHorizontal: 16,
     paddingVertical: 16,
   },
@@ -634,7 +651,7 @@ const s = StyleSheet.create({
   quickStatLabel: {
     marginTop: 4,
     fontSize: 13,
-    color: colors.textMuted,
+    color: vibe.textSoft,
   },
   section: {
     gap: 12,
@@ -647,9 +664,9 @@ const s = StyleSheet.create({
   sectionEyebrow: {
     fontSize: 12,
     fontWeight: "700",
-    letterSpacing: 0.9,
+    letterSpacing: 1.9,
     textTransform: "uppercase",
-    color: colors.textMuted,
+    color: vibe.cyan,
   },
   sectionTitle: {
     marginTop: 2,
@@ -660,14 +677,14 @@ const s = StyleSheet.create({
   sectionCount: {
     fontSize: 15,
     fontWeight: "700",
-    color: colors.textSoft,
+    color: vibe.textSoft,
   },
   listCard: {
     overflow: "hidden",
-    borderRadius: 24,
-    backgroundColor: colors.card,
+    borderRadius: 22,
+    backgroundColor: vibe.panelAlt,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
+    borderColor: vibe.line,
   },
   row: {
     flexDirection: "row",
@@ -675,14 +692,14 @@ const s = StyleSheet.create({
     gap: 14,
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: "rgba(14, 18, 28, 0.78)",
+    backgroundColor: "rgba(13, 16, 23, 0.92)",
   },
   rowDone: {
-    backgroundColor: "rgba(17, 29, 30, 0.72)",
+    backgroundColor: "rgba(16, 25, 21, 0.95)",
   },
   rowBorder: {
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.06)",
+    borderTopColor: vibe.line,
   },
   leadingOrb: {
     width: 34,
@@ -690,7 +707,7 @@ const s = StyleSheet.create({
     borderRadius: 17,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(49, 198, 255, 0.12)",
+    backgroundColor: "rgba(52, 198, 255, 0.12)",
   },
   leadingOrbDone: {
     backgroundColor: "rgba(52, 211, 153, 0.2)",
@@ -710,12 +727,12 @@ const s = StyleSheet.create({
     color: colors.text,
   },
   rowTitleDone: {
-    color: colors.textSoft,
+    color: vibe.textSoft,
   },
   rowSubtitle: {
     fontSize: 13,
     lineHeight: 18,
-    color: colors.textMuted,
+    color: vibe.textSoft,
   },
   rowMeta: {
     alignItems: "flex-end",
@@ -725,7 +742,7 @@ const s = StyleSheet.create({
     fontSize: 12,
     fontWeight: "800",
     letterSpacing: 0.6,
-    color: colors.accentElectric,
+    color: vibe.cyan,
   },
   streakBadge: {
     flexDirection: "row",
@@ -734,18 +751,18 @@ const s = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 5,
     borderRadius: 999,
-    backgroundColor: "rgba(255, 157, 51, 0.14)",
+    backgroundColor: "rgba(255, 107, 44, 0.16)",
   },
   streakText: {
     fontSize: 12,
     fontWeight: "700",
-    color: colors.streak,
+    color: vibe.emberSoft,
   },
   emptyCard: {
-    borderRadius: 24,
+    borderRadius: 22,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
-    backgroundColor: colors.card,
+    borderColor: vibe.line,
+    backgroundColor: vibe.panelAlt,
     paddingHorizontal: 20,
     paddingVertical: 28,
     alignItems: "center",
@@ -761,6 +778,6 @@ const s = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     textAlign: "center",
-    color: colors.textMuted,
+    color: vibe.textSoft,
   },
 });

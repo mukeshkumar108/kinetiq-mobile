@@ -5,13 +5,10 @@ import type {
 } from "./Toast.types";
 import React, { useEffect, useRef } from "react";
 import {
-  LayoutAnimation,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
-  UIManager,
   View,
 } from "react-native";
 import Animated, {
@@ -22,12 +19,6 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
-
-if (Platform.OS === "android") {
-  if (UIManager.setLayoutAnimationEnabledExperimental) {
-    UIManager.setLayoutAnimationEnabledExperimental(true);
-  }
-}
 
 interface ToastProps {
   toast: ToastType;
@@ -158,17 +149,6 @@ export const Toast: React.FC<ToastProps> = ({ toast, index }) => {
 
   useEffect(() => {
     const delay = index * 50;
-
-    LayoutAnimation.configureNext({
-      duration: 300,
-      create: {
-        type: LayoutAnimation.Types.easeInEaseOut,
-        property: LayoutAnimation.Properties.opacity,
-      },
-      update: {
-        type: LayoutAnimation.Types.easeInEaseOut,
-      },
-    });
 
     setTimeout(() => {
       // opacity.value = withTiming(1, {

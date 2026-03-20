@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -25,6 +25,7 @@ import {
 import type { Habit } from "@/modules/habits/types";
 import { colors } from "@/shared/theme/colors";
 import { StateCard } from "@/shared/ui/feedback/StateCard";
+import { BottomSheet } from "@/shared/ui/feedback/BottomSheet";
 
 const MAX_OPEN_TASKS = 3;
 
@@ -41,15 +42,11 @@ export function ManageScreen() {
   const createTask = useCreateTask();
   const deleteTask = useDeleteTask();
 
-  // Inline add state
-  const [habitInputOpen, setHabitInputOpen] = useState(false);
-  const [habitTitle, setHabitTitle] = useState("");
-  const [taskInputOpen, setTaskInputOpen] = useState(false);
-  const [taskTitle, setTaskTitle] = useState("");
+  // Bottom sheet state
+  const [addSheet, setAddSheet] = useState<"habit" | "task" | null>(null);
+  const [inputValue, setInputValue] = useState("");
   const [showArchived, setShowArchived] = useState(false);
-
-  const habitInputRef = useRef<TextInput>(null);
-  const taskInputRef = useRef<TextInput>(null);
+  const [isManualRefresh, setIsManualRefresh] = useState(false);
 
   // Derived data
   const allHabits = habitsQuery.data ?? [];
@@ -57,31 +54,41 @@ export function ManageScreen() {
   const archivedHabits = allHabits.filter((h) => h.isArchived);
   const openTasks = tasksQuery.data ?? [];
   const atTaskLimit = openTasks.length >= MAX_OPEN_TASKS;
-  const isMutating =
-    createHabit.isPending ||
-    updateHabit.isPending ||
-    createTask.isPending ||
-    deleteTask.isPending;
 
   // Handlers
-  const handleCreateHabit = useCallback(() => {
-    const title = habitTitle.trim();
-    if (!title) {
-      setHabitInputOpen(false);
-      setHabitTitle("");
-      return;
-    }
-    createHabit.mutate(
-      { title },
-      {
-        onSuccess: () => {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          setHabitTitle("");
-          setHabitInputOpen(false);
+  const dismissSheet = useCallback(() => {
+    setAddSheet(null);
+    setInputValue("");
+  }, []);
+
+  const handleSubmit = useCallback(() => {
+    const title = inputValue.trim();
+    if (!title) return;
+
+    if (addSheet === "habit") {
+      createHabit.mutate(
+        { title },
+        {
+          onSuccess: () => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            setInputValue("");
+            setAddSheet(null);
+          },
         },
-      },
-    );
-  }, [habitTitle, createHabit]);
+      );
+    } else if (addSheet === "task") {
+      createTask.mutate(
+        { title },
+        {
+          onSuccess: () => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            setInputValue("");
+            setAddSheet(null);
+          },
+        },
+      );
+    }
+  }, [inputValue, addSheet, createHabit, createTask]);
 
   const handleArchiveHabit = useCallback(
     (habit: Habit) => {
@@ -94,25 +101,6 @@ export function ManageScreen() {
     [updateHabit],
   );
 
-  const handleCreateTask = useCallback(() => {
-    const title = taskTitle.trim();
-    if (!title) {
-      setTaskInputOpen(false);
-      setTaskTitle("");
-      return;
-    }
-    createTask.mutate(
-      { title },
-      {
-        onSuccess: () => {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          setTaskTitle("");
-          setTaskInputOpen(false);
-        },
-      },
-    );
-  }, [taskTitle, createTask]);
-
   const handleDeleteTask = useCallback(
     (id: string) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -122,8 +110,10 @@ export function ManageScreen() {
   );
 
   const onRefresh = useCallback(() => {
-    habitsQuery.refetch();
-    tasksQuery.refetch();
+    setIsManualRefresh(true);
+    Promise.all([habitsQuery.refetch(), tasksQuery.refetch()]).finally(() => {
+      setIsManualRefresh(false);
+    });
   }, [habitsQuery, tasksQuery]);
 
   if (habitsQuery.isLoading && !habitsQuery.data) {
@@ -150,214 +140,196 @@ export function ManageScreen() {
     );
   }
 
+  const isSubmitting = createHabit.isPending || createTask.isPending;
+
   return (
-    <ScrollView
-      style={s.container}
-      contentContainerStyle={[s.content, { paddingTop: insets.top + 16 }]}
-      keyboardShouldPersistTaps="handled"
-      refreshControl={
-        <RefreshControl
-          refreshing={habitsQuery.isFetching || tasksQuery.isFetching}
-          onRefresh={onRefresh}
-          tintColor={colors.accent}
-        />
-      }
-    >
-      <Text style={s.heading}>Manage</Text>
+    <>
+      <ScrollView
+        style={s.container}
+        contentContainerStyle={[s.content, { paddingTop: insets.top + 16 }]}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={isManualRefresh}
+            onRefresh={onRefresh}
+            tintColor={colors.accent}
+          />
+        }
+      >
+        <Text style={s.heading}>Manage</Text>
 
-      {/* ── Habits Section ── */}
-      <View style={s.section}>
-        <View style={s.sectionHeader}>
-          <Text style={s.sectionTitle}>Habits</Text>
-          <Text style={s.sectionCount}>{activeHabits.length}</Text>
-        </View>
+        {/* ── Habits Section ── */}
+        <View style={s.section}>
+          <View style={s.sectionHeader}>
+            <Text style={s.sectionTitle}>Habits</Text>
+            <Text style={s.sectionCount}>{activeHabits.length}</Text>
+          </View>
 
-        <View style={s.listCard}>
-          {/* Add row */}
-          {habitInputOpen ? (
-            <View style={s.inputRow}>
-              <Ionicons name="add" size={20} color={colors.accent} />
-              <TextInput
-                ref={habitInputRef}
-                style={s.textInput}
-                value={habitTitle}
-                onChangeText={setHabitTitle}
-                placeholder="Habit name"
-                placeholderTextColor={colors.textMuted}
-                autoFocus
-                editable={!createHabit.isPending}
-                returnKeyType="done"
-                onSubmitEditing={handleCreateHabit}
-                onBlur={() => {
-                  if (!habitTitle.trim()) {
-                    setHabitInputOpen(false);
-                    setHabitTitle("");
-                  }
-                }}
-              />
-            </View>
-          ) : (
+          <View style={s.listCard}>
+            {/* Add row */}
             <Pressable
               style={s.addRow}
-              onPress={() => setHabitInputOpen(true)}
-              disabled={isMutating}
+              onPress={() => setAddSheet("habit")}
             >
               <Ionicons name="add" size={20} color={colors.accent} />
               <Text style={s.addRowText}>New habit</Text>
             </Pressable>
-          )}
 
-          {/* Active habits */}
-          {activeHabits.map((habit) => (
-            <View key={habit.id} style={[s.row, s.rowBorder]}>
-              <View style={s.rowContent}>
-                <Text style={s.rowTitle}>{habit.title}</Text>
-              </View>
-              {habit.streak.current > 0 && (
-                <View style={s.streakBadge}>
-                  <Ionicons name="flame" size={14} color={colors.streak} />
-                  <Text style={s.streakText}>{habit.streak.current}</Text>
+            {/* Active habits */}
+            {activeHabits.map((habit) => (
+              <View key={habit.id} style={[s.row, s.rowBorder]}>
+                <View style={s.rowContent}>
+                  <Text style={s.rowTitle}>{habit.title}</Text>
                 </View>
-              )}
+                {habit.streak.current > 0 && (
+                  <View style={s.streakBadge}>
+                    <Ionicons name="flame" size={14} color={colors.streak} />
+                    <Text style={s.streakText}>{habit.streak.current}</Text>
+                  </View>
+                )}
+                <Pressable
+                  onPress={() => handleArchiveHabit(habit)}
+                  hitSlop={8}
+                  disabled={updateHabit.isPending}
+                >
+                  <Ionicons
+                    name="archive-outline"
+                    size={20}
+                    color={colors.textMuted}
+                  />
+                </Pressable>
+              </View>
+            ))}
+          </View>
+
+          {/* Archived toggle */}
+          {archivedHabits.length > 0 && (
+            <>
               <Pressable
-                onPress={() => handleArchiveHabit(habit)}
-                hitSlop={8}
-                disabled={updateHabit.isPending}
+                style={s.archivedToggle}
+                onPress={() => setShowArchived((v) => !v)}
               >
+                <Text style={s.archivedToggleText}>
+                  {showArchived ? "Hide" : "Show"} archived ({archivedHabits.length})
+                </Text>
                 <Ionicons
-                  name="archive-outline"
-                  size={20}
+                  name={showArchived ? "chevron-up" : "chevron-down"}
+                  size={16}
                   color={colors.textMuted}
                 />
               </Pressable>
-            </View>
-          ))}
-        </View>
 
-        {/* Archived toggle */}
-        {archivedHabits.length > 0 && (
-          <>
-            <Pressable
-              style={s.archivedToggle}
-              onPress={() => setShowArchived((v) => !v)}
-              disabled={isMutating}
-            >
-              <Text style={s.archivedToggleText}>
-                {showArchived ? "Hide" : "Show"} archived ({archivedHabits.length})
-              </Text>
-              <Ionicons
-                name={showArchived ? "chevron-up" : "chevron-down"}
-                size={16}
-                color={colors.textMuted}
-              />
-            </Pressable>
-
-            {showArchived && (
-              <View style={s.listCard}>
-                {archivedHabits.map((habit, i) => (
-                  <View
-                    key={habit.id}
-                    style={[s.row, i > 0 && s.rowBorder]}
-                  >
-                    <View style={s.rowContent}>
-                      <Text style={[s.rowTitle, s.archivedText]}>
-                        {habit.title}
-                      </Text>
-                    </View>
-                    <Pressable
-                      onPress={() => handleArchiveHabit(habit)}
-                      hitSlop={8}
-                      disabled={updateHabit.isPending}
+              {showArchived && (
+                <View style={s.listCard}>
+                  {archivedHabits.map((habit, i) => (
+                    <View
+                      key={habit.id}
+                      style={[s.row, i > 0 && s.rowBorder]}
                     >
-                      <Ionicons
-                        name="arrow-undo-outline"
-                        size={20}
-                        color={colors.accent}
-                      />
-                    </Pressable>
-                  </View>
-                ))}
-              </View>
-            )}
-          </>
-        )}
-      </View>
-
-      {/* ── Tasks Section ── */}
-      <View style={s.section}>
-        <View style={s.sectionHeader}>
-          <Text style={s.sectionTitle}>Tasks</Text>
-          <Text style={s.sectionCount}>
-            {openTasks.length}/{MAX_OPEN_TASKS}
-          </Text>
-        </View>
-
-        <View style={s.listCard}>
-          {/* Add row */}
-          {atTaskLimit ? (
-            <View style={s.addRow}>
-              <Ionicons name="add" size={20} color={colors.textMuted} />
-              <Text style={s.disabledText}>
-                {MAX_OPEN_TASKS}/{MAX_OPEN_TASKS} — focus on what you have
-              </Text>
-            </View>
-          ) : taskInputOpen ? (
-            <View style={s.inputRow}>
-              <Ionicons name="add" size={20} color={colors.accent} />
-              <TextInput
-                ref={taskInputRef}
-                style={s.textInput}
-                value={taskTitle}
-                onChangeText={setTaskTitle}
-                placeholder="Task name"
-                placeholderTextColor={colors.textMuted}
-                autoFocus
-                editable={!createTask.isPending}
-                returnKeyType="done"
-                onSubmitEditing={handleCreateTask}
-                onBlur={() => {
-                  if (!taskTitle.trim()) {
-                    setTaskInputOpen(false);
-                    setTaskTitle("");
-                  }
-                }}
-              />
-            </View>
-          ) : (
-            <Pressable
-              style={s.addRow}
-              onPress={() => setTaskInputOpen(true)}
-              disabled={isMutating}
-            >
-              <Ionicons name="add" size={20} color={colors.accent} />
-              <Text style={s.addRowText}>New task</Text>
-            </Pressable>
+                      <View style={s.rowContent}>
+                        <Text style={[s.rowTitle, s.archivedText]}>
+                          {habit.title}
+                        </Text>
+                      </View>
+                      <Pressable
+                        onPress={() => handleArchiveHabit(habit)}
+                        hitSlop={8}
+                        disabled={updateHabit.isPending}
+                      >
+                        <Ionicons
+                          name="arrow-undo-outline"
+                          size={20}
+                          color={colors.accent}
+                        />
+                      </Pressable>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </>
           )}
-
-          {/* Open tasks */}
-          {openTasks.map((task) => (
-            <View key={task.id} style={[s.row, s.rowBorder]}>
-              <View style={s.rowContent}>
-                <Text style={s.rowTitle}>{task.title}</Text>
-              </View>
-              <Pressable
-                onPress={() => handleDeleteTask(task.id)}
-                hitSlop={8}
-                disabled={deleteTask.isPending}
-              >
-                <Ionicons
-                  name="trash-outline"
-                  size={20}
-                  color={colors.danger}
-                />
-              </Pressable>
-            </View>
-          ))}
         </View>
-      </View>
 
-      <View style={{ height: 32 }} />
-    </ScrollView>
+        {/* ── Tasks Section ── */}
+        <View style={s.section}>
+          <View style={s.sectionHeader}>
+            <Text style={s.sectionTitle}>Tasks</Text>
+            <Text style={s.sectionCount}>
+              {openTasks.length}/{MAX_OPEN_TASKS}
+            </Text>
+          </View>
+
+          <View style={s.listCard}>
+            {/* Add row */}
+            {atTaskLimit ? (
+              <View style={s.addRow}>
+                <Ionicons name="add" size={20} color={colors.textMuted} />
+                <Text style={s.disabledText}>
+                  {MAX_OPEN_TASKS}/{MAX_OPEN_TASKS} — focus on what you have
+                </Text>
+              </View>
+            ) : (
+              <Pressable
+                style={s.addRow}
+                onPress={() => setAddSheet("task")}
+              >
+                <Ionicons name="add" size={20} color={colors.accent} />
+                <Text style={s.addRowText}>New task</Text>
+              </Pressable>
+            )}
+
+            {/* Open tasks */}
+            {openTasks.map((task) => (
+              <View key={task.id} style={[s.row, s.rowBorder]}>
+                <View style={s.rowContent}>
+                  <Text style={s.rowTitle}>{task.title}</Text>
+                </View>
+                <Pressable
+                  onPress={() => handleDeleteTask(task.id)}
+                  hitSlop={8}
+                  disabled={deleteTask.isPending}
+                >
+                  <Ionicons
+                    name="trash-outline"
+                    size={20}
+                    color={colors.danger}
+                  />
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View style={{ height: 32 }} />
+      </ScrollView>
+
+      {/* Add bottom sheet */}
+      <BottomSheet
+        visible={addSheet !== null}
+        onDismiss={dismissSheet}
+        title={addSheet === "habit" ? "New habit" : "New task"}
+      >
+        <TextInput
+          style={s.sheetInput}
+          value={inputValue}
+          onChangeText={setInputValue}
+          placeholder={addSheet === "habit" ? "Habit name" : "Task name"}
+          placeholderTextColor={colors.textMuted}
+          returnKeyType="done"
+          editable={!isSubmitting}
+          onSubmitEditing={handleSubmit}
+        />
+        <Pressable
+          style={[s.sheetButton, (!inputValue.trim() || isSubmitting) && s.sheetButtonDisabled]}
+          onPress={handleSubmit}
+          disabled={!inputValue.trim() || isSubmitting}
+        >
+          <Text style={s.sheetButtonText}>
+            {isSubmitting ? "Adding..." : "Add"}
+          </Text>
+        </Pressable>
+      </BottomSheet>
+    </>
   );
 }
 
@@ -444,20 +416,6 @@ const s = StyleSheet.create({
     color: colors.textMuted,
   },
 
-  // Inline input
-  inputRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 14,
-    gap: 12,
-  },
-  textInput: {
-    flex: 1,
-    fontSize: 16,
-    color: colors.text,
-    padding: 0,
-  },
-
   // Streak badge
   streakBadge: {
     flexDirection: "row",
@@ -494,5 +452,32 @@ const s = StyleSheet.create({
   disabledText: {
     fontSize: 14,
     color: colors.textMuted,
+  },
+
+  // Bottom sheet form
+  sheetInput: {
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    fontSize: 16,
+    color: colors.text,
+    marginBottom: 20,
+  },
+  sheetButton: {
+    backgroundColor: colors.accent,
+    borderRadius: 14,
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  sheetButtonDisabled: {
+    opacity: 0.4,
+  },
+  sheetButtonText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: colors.text,
   },
 });

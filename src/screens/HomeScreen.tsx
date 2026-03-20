@@ -56,13 +56,13 @@ const page = {
   shadow: "rgba(0, 0, 0, 0.28)",
 };
 
-const habitPalette = [
-  ["#16294A", "#244A88"],
-  ["#2A1A46", "#5F34A2"],
-  ["#372715", "#7A5523"],
-  ["#102E28", "#1A5C4D"],
-  ["#3B1D18", "#8E4130"],
-] as const;
+const vibe = {
+  cyan: "#34C6FF",
+  ember: "#FF6B2C",
+  emberSoft: "#FF8A4C",
+  panelAlt: "rgba(18, 19, 27, 0.92)",
+  line: "rgba(255,255,255,0.09)",
+};
 
 type SurfaceTab = "habits" | "tasks";
 type SheetKind = "habit" | "task";
@@ -72,6 +72,7 @@ type RewardState = {
   title: string;
   subtitle: string;
   meta?: string;
+  points?: number;
 } | null;
 
 type DraftTarget =
@@ -188,6 +189,7 @@ export function HomeScreen() {
           result.streak.current > 0
             ? `${result.streak.current} day streak alive`
             : undefined,
+        points: 10,
       });
     },
     [showReward],
@@ -211,6 +213,7 @@ export function HomeScreen() {
         title: "Task cleared",
         subtitle:
           result.unlockedAchievements[0]?.title ?? `${task.title} is out of the way.`,
+        points: result.grantedXp,
       });
     },
     [showReward],
@@ -515,35 +518,41 @@ export function HomeScreen() {
               habits.map((habit, index) => (
                 <Pressable
                   key={habit.id}
-                  style={s.habitCardPressable}
+                  style={[
+                    s.itemCard,
+                    habit.completedToday && s.itemCardDone,
+                  ]}
                   onPress={() => handleHabitToggle(habit)}
                   onLongPress={() => openEditSheet({ kind: "habit", id: habit.id }, habit.title)}
                   disabled={habitMutationPending}
                 >
-                  <LinearGradient
-                    colors={
-                      habit.completedToday
-                        ? ["#143126", "#1F4D3B"]
-                        : habitPalette[index % habitPalette.length]
-                    }
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={s.habitCard}
-                  >
-                    <View style={s.cardTop}>
-                      <Text style={s.cardTitle}>{habit.title}</Text>
-                      <View style={s.metricCluster}>
-                        <View style={s.metricInline}>
-                          <Ionicons name="flash" size={13} color={page.text} />
-                          <Text style={s.metricInlineText}>{habit.streak.current}</Text>
-                        </View>
-                        <View style={s.metricInline}>
-                          <Ionicons name="flame" size={13} color={page.text} />
-                          <Text style={s.metricInlineText}>{habit.streak.longest}</Text>
-                        </View>
+                  <View style={[s.leadingOrb, habit.completedToday && s.leadingOrbDone]}>
+                    {habit.completedToday ? (
+                      <Ionicons name="checkmark" size={16} color={page.text} />
+                    ) : (
+                      <Ionicons name="flash" size={14} color={vibe.cyan} />
+                    )}
+                  </View>
+                  <View style={s.rowContent}>
+                    <Text style={[s.rowTitle, habit.completedToday && s.rowTitleDone]}>
+                      {habit.title}
+                    </Text>
+                    <Text style={s.rowSubtitle}>
+                      {habit.completedToday
+                        ? "Locked in for today"
+                        : habit.streak.current > 0
+                          ? `${habit.streak.current} day streak running`
+                          : "Ready when you are"}
+                    </Text>
+                  </View>
+                  <View style={s.rowMeta}>
+                    {habit.streak.current > 0 ? (
+                      <View style={s.streakBadge}>
+                        <Ionicons name="flame" size={12} color={vibe.ember} />
+                        <Text style={s.streakText}>{habit.streak.current}</Text>
                       </View>
-                    </View>
-                  </LinearGradient>
+                    ) : null}
+                  </View>
                 </Pressable>
               ))
             )}
@@ -564,21 +573,26 @@ export function HomeScreen() {
               tasks.map((task) => (
                 <Pressable
                   key={task.id}
-                  style={[s.taskCard, task.status === "completed" && s.taskCardDone]}
+                  style={[
+                    s.itemCard,
+                    task.status === "completed" && s.itemCardDone,
+                  ]}
                   onPress={() => handleTaskToggle(task)}
                   onLongPress={() => openEditSheet({ kind: "task", id: task.id }, task.title)}
                   disabled={completeTask.isPending || reopenTask.isPending}
                 >
-                  <View style={s.taskCheck}>
+                  <View style={s.taskCheckbox}>
                     <Ionicons
                       name={task.status === "completed" ? "checkmark-circle" : "ellipse"}
-                      size={18}
-                      color={page.text}
+                      size={20}
+                      color={task.status === "completed" ? page.mint : vibe.cyan}
                     />
                   </View>
-                  <View style={s.taskCopy}>
-                    <Text style={s.taskTitle}>{task.title}</Text>
-                    <Text style={s.taskSubtitle}>
+                  <View style={s.rowContent}>
+                    <Text style={[s.rowTitle, task.status === "completed" && s.rowTitleDone]}>
+                      {task.title}
+                    </Text>
+                    <Text style={s.rowSubtitle}>
                       {task.status === "completed"
                         ? "Completed. Tap to reopen if that was accidental"
                         : "Secondary to habits, but still here when needed"}
@@ -602,6 +616,7 @@ export function HomeScreen() {
             title={reward.title}
             subtitle={reward.subtitle}
             meta={reward.meta}
+            points={reward.points}
           />
         )}
       </BottomSheet>
@@ -751,91 +766,76 @@ const s = StyleSheet.create({
     shadowOffset: { width: 0, height: 7 },
   },
   cardColumn: {
-    gap: 16,
+    gap: 12,
   },
-  habitCardPressable: {
-    borderRadius: 26,
-  },
-  habitCard: {
-    minHeight: 94,
-    borderRadius: 26,
-    paddingHorizontal: 18,
-    paddingTop: 16,
-    paddingBottom: 12,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    shadowColor: page.shadow,
-    shadowOpacity: 1,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
-  },
-  cardTop: {
-    gap: 8,
-  },
-  cardTitle: {
-    fontSize: 17,
-    lineHeight: 22,
-    fontWeight: "600",
-    color: page.text,
-    paddingRight: 20,
-  },
-  metricCluster: {
-    flexDirection: "row",
-    gap: 10,
-    alignItems: "center",
-    alignSelf: "flex-start",
-    marginTop: 2,
-  },
-  metricInline: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    opacity: 0.5,
-  },
-  metricInlineText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "rgba(247,248,250,0.58)",
-  },
-  taskCard: {
+  itemCard: {
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
-    borderRadius: 24,
-    paddingHorizontal: 18,
-    paddingVertical: 17,
-    backgroundColor: page.panel,
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: vibe.panelAlt,
     borderWidth: 1,
-    borderColor: page.panelBorder,
+    borderColor: vibe.line,
     shadowColor: page.shadow,
-    shadowOpacity: 0.65,
+    shadowOpacity: 1,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 6 },
   },
-  taskCardDone: {
-    backgroundColor: "rgba(24, 45, 36, 0.95)",
+  itemCardDone: {
+    backgroundColor: "rgba(16, 25, 21, 0.95)",
   },
-  taskCheck: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+  leadingOrb: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(52, 198, 255, 0.12)",
+  },
+  leadingOrbDone: {
+    backgroundColor: "rgba(52, 211, 153, 0.2)",
+  },
+  taskCheckbox: {
+    width: 28,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.06)",
   },
-  taskCopy: {
+  rowContent: {
     flex: 1,
     gap: 4,
   },
-  taskTitle: {
+  rowTitle: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
     color: page.text,
   },
-  taskSubtitle: {
+  rowTitleDone: {
+    color: page.textSoft,
+  },
+  rowSubtitle: {
     fontSize: 13,
     lineHeight: 18,
     color: page.textSoft,
+  },
+  rowMeta: {
+    alignItems: "flex-end",
+    gap: 8,
+  },
+  streakBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: "rgba(255, 107, 44, 0.16)",
+  },
+  streakText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: vibe.emberSoft,
   },
   emptyCard: {
     borderRadius: 24,

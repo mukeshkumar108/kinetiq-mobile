@@ -49,6 +49,7 @@ interface RewardData {
   title: string;
   subtitle: string;
   meta?: string;
+  points?: number;
 }
 
 export function TodayScreen() {
@@ -100,6 +101,7 @@ export function TodayScreen() {
           result.streak.current > 0
             ? `${result.streak.current} day streak alive`
             : undefined,
+        points: rewardXp,
       });
     },
     [
@@ -128,6 +130,7 @@ export function TodayScreen() {
         emoji: "🎯",
         title: "Task cleared",
         subtitle: `${task.title} — +${result.grantedXp} XP earned.`,
+        points: result.grantedXp,
       });
     },
     [applyProgressionReward],
@@ -510,6 +513,7 @@ export function TodayScreen() {
             title={rewardSheet.title}
             subtitle={rewardSheet.subtitle}
             meta={rewardSheet.meta}
+            points={rewardSheet.points}
           />
         )}
       </BottomSheet>

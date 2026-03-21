@@ -41,6 +41,7 @@ export function ManageScreen() {
   const deleteTask = useDeleteTask();
 
   const [addSheet, setAddSheet] = useState<"habit" | "task" | null>(null);
+  const [editHabitId, setEditHabitId] = useState<string | null>(null);
   const [inputValue, setInputValue] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [isManualRefresh, setIsManualRefresh] = useState(false);
@@ -53,7 +54,14 @@ export function ManageScreen() {
 
   const dismissSheet = useCallback(() => {
     setAddSheet(null);
+    setEditHabitId(null);
     setInputValue("");
+  }, []);
+
+  const openEditHabit = useCallback((habit: Habit) => {
+    setEditHabitId(habit.id);
+    setInputValue(habit.title);
+    setAddSheet("habit");
   }, []);
 
   const handleSubmit = useCallback(() => {
@@ -61,17 +69,29 @@ export function ManageScreen() {
     if (!title) return;
 
     if (addSheet === "habit") {
-      createHabit.mutate(
-        { title },
-        {
-          onSuccess: () => {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            setInputValue("");
-            setAddSheet(null);
+      const onSuccess = () => {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setInputValue("");
+        setEditHabitId(null);
+        setAddSheet(null);
+      };
+      if (editHabitId) {
+        updateHabit.mutate(
+          { id: editHabitId, input: { title } },
+          {
+            onSuccess,
+            onError: () => Toast.show("Couldn't update habit. Try again.", { type: "error" }),
           },
-          onError: () => Toast.show("Couldn't add habit. Try again.", { type: "error" }),
-        },
-      );
+        );
+      } else {
+        createHabit.mutate(
+          { title },
+          {
+            onSuccess,
+            onError: () => Toast.show("Couldn't add habit. Try again.", { type: "error" }),
+          },
+        );
+      }
     } else if (addSheet === "task") {
       createTask.mutate(
         { title },
@@ -85,7 +105,7 @@ export function ManageScreen() {
         },
       );
     }
-  }, [inputValue, addSheet, createHabit, createTask]);
+  }, [inputValue, addSheet, editHabitId, createHabit, updateHabit, createTask]);
 
   const handleArchiveHabit = useCallback(
     (habit: Habit) => {
@@ -148,7 +168,7 @@ export function ManageScreen() {
     );
   }
 
-  const isSubmitting = createHabit.isPending || createTask.isPending;
+  const isSubmitting = createHabit.isPending || updateHabit.isPending || createTask.isPending;
 
   return (
     <>
@@ -184,9 +204,9 @@ export function ManageScreen() {
 
             {activeHabits.map((habit) => (
               <View key={habit.id} style={[s.row, s.rowBorder]}>
-                <View style={s.rowContent}>
+                <PressableScale style={s.rowContent} onPress={() => openEditHabit(habit)}>
                   <Text style={s.rowTitle}>{habit.title}</Text>
-                </View>
+                </PressableScale>
                 {habit.streak.current > 0 && (
                   <View style={s.streakBadge}>
                     <Ionicons name="flame" size={14} color={color.ember} />
@@ -194,13 +214,19 @@ export function ManageScreen() {
                   </View>
                 )}
                 <PressableScale
+                  onPress={() => openEditHabit(habit)}
+                  hitSlop={8}
+                >
+                  <Ionicons name="pencil-outline" size={18} color={color.textSecondary} />
+                </PressableScale>
+                <PressableScale
                   onPress={() => handleArchiveHabit(habit)}
                   hitSlop={8}
                   disabled={updateHabit.isPending}
                 >
                   <Ionicons
                     name="archive-outline"
-                    size={20}
+                    size={18}
                     color={color.textSecondary}
                   />
                 </PressableScale>
@@ -298,7 +324,7 @@ export function ManageScreen() {
       <BottomSheet
         visible={addSheet !== null}
         onDismiss={dismissSheet}
-        title={addSheet === "habit" ? "New habit" : "New task"}
+        title={addSheet === "task" ? "New task" : editHabitId ? "Edit habit" : "New habit"}
       >
         <TextInput
           style={s.sheetInput}
@@ -316,7 +342,7 @@ export function ManageScreen() {
           disabled={!inputValue.trim() || isSubmitting}
         >
           <Text style={s.sheetButtonText}>
-            {isSubmitting ? "Adding..." : "Add"}
+            {isSubmitting ? "Saving..." : editHabitId ? "Save" : "Add"}
           </Text>
         </Pressable>
       </BottomSheet>

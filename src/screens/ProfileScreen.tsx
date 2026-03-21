@@ -42,9 +42,25 @@ export function ProfileScreen() {
       </View>
 
       {progression.data && (
-        <View style={s.card}>
-          <Text style={s.statLabel}>Level {progression.data.level}</Text>
-          <Text style={s.statValue}>{progression.data.totalXp} total XP</Text>
+        <View style={s.statsCard}>
+          <View style={s.levelRow}>
+            <Ionicons name="flash" size={16} color={color.cyan} />
+            <Text style={s.levelText}>Level {progression.data.level}</Text>
+          </View>
+          <View style={s.statRow}>
+            <View style={s.statItem}>
+              <Text style={s.statValue}>{progression.data.totalXp}</Text>
+              <Text style={s.statLabel}>Total XP</Text>
+            </View>
+            <View style={s.statDivider} />
+            <View style={s.statItem}>
+              <Text style={s.statValue}>
+                {progression.data.currentLevelXp}
+                <Text style={s.statValueMuted}> / {progression.data.nextLevelXp}</Text>
+              </Text>
+              <Text style={s.statLabel}>XP this level</Text>
+            </View>
+          </View>
         </View>
       )}
 
@@ -103,14 +119,51 @@ const s = StyleSheet.create({
     ...font.caption,
     marginTop: space.xs,
   },
-  statLabel: {
-    ...font.body,
-    fontWeight: "600",
-    color: color.mint,
+  statsCard: {
+    backgroundColor: color.bgCard,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: color.border,
+    padding: space.xl,
+    marginBottom: space.lg,
+    gap: space.lg,
+    ...cardShadow,
+  },
+  levelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.sm,
+  },
+  levelText: {
+    ...font.headline,
+    fontWeight: "700",
+  },
+  statRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  statItem: {
+    flex: 1,
+    gap: space.xs,
+  },
+  statDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: color.border,
+    marginHorizontal: space.lg,
   },
   statValue: {
-    ...font.caption,
-    marginTop: space.xs,
+    fontSize: 22,
+    fontWeight: "800",
+    color: color.text,
+  },
+  statValueMuted: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: color.textSecondary,
+  },
+  statLabel: {
+    ...font.label,
   },
   signOutBtn: {
     flexDirection: "row",

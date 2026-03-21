@@ -29,8 +29,6 @@ import { StateCard } from "@/shared/ui/feedback/StateCard";
 import { BottomSheet } from "@/shared/ui/feedback/BottomSheet";
 import { Toast } from "@/shared/ui/molecules/Toast";
 
-const MAX_OPEN_TASKS = 3;
-
 export function ManageScreen() {
   const insets = useSafeAreaInsets();
 
@@ -52,7 +50,6 @@ export function ManageScreen() {
   const activeHabits = allHabits.filter((h) => !h.isArchived);
   const archivedHabits = allHabits.filter((h) => h.isArchived);
   const openTasks = tasksQuery.data ?? [];
-  const atTaskLimit = openTasks.length >= MAX_OPEN_TASKS;
 
   const dismissSheet = useCallback(() => {
     setAddSheet(null);
@@ -262,28 +259,17 @@ export function ManageScreen() {
         <View style={s.section}>
           <View style={s.sectionHeader}>
             <Text style={s.sectionTitle}>Tasks</Text>
-            <Text style={s.sectionCount}>
-              {openTasks.length}/{MAX_OPEN_TASKS}
-            </Text>
+            <Text style={s.sectionCount}>{openTasks.length}</Text>
           </View>
 
           <View style={s.listCard}>
-            {atTaskLimit ? (
-              <View style={s.addRow}>
-                <Ionicons name="add" size={20} color={color.textTertiary} />
-                <Text style={s.disabledText}>
-                  {MAX_OPEN_TASKS}/{MAX_OPEN_TASKS} — focus on what you have
-                </Text>
-              </View>
-            ) : (
-              <PressableScale
-                style={s.addRow}
-                onPress={() => setAddSheet("task")}
-              >
-                <Ionicons name="add" size={20} color={color.mint} />
-                <Text style={s.addRowText}>New task</Text>
-              </PressableScale>
-            )}
+            <PressableScale
+              style={s.addRow}
+              onPress={() => setAddSheet("task")}
+            >
+              <Ionicons name="add" size={20} color={color.mint} />
+              <Text style={s.addRowText}>New task</Text>
+            </PressableScale>
 
             {openTasks.map((task) => (
               <View key={task.id} style={[s.row, s.rowBorder]}>
@@ -463,11 +449,6 @@ const s = StyleSheet.create({
   },
   archivedText: {
     color: color.textSecondary,
-  },
-
-  disabledText: {
-    ...font.caption,
-    color: color.textTertiary,
   },
 
   sheetInput: {

@@ -488,6 +488,7 @@ export function HomeScreen() {
                         <Text style={s.streakText}>{habit.streak.current}</Text>
                       </View>
                     ) : null}
+                    <Ionicons name="pencil-outline" size={13} color={color.textTertiary} style={s.editHint} />
                   </View>
                 </PressableScale>
               ))
@@ -532,6 +533,7 @@ export function HomeScreen() {
                       <Text style={s.rowSubtitle}>Done</Text>
                     ) : null}
                   </View>
+                  <Ionicons name="pencil-outline" size={13} color={color.textTertiary} />
                 </PressableScale>
               ))
             )}
@@ -822,6 +824,10 @@ const s = StyleSheet.create({
   },
   rowMeta: {
     alignItems: "flex-end",
+    gap: space.xs,
+  },
+  editHint: {
+    marginTop: space.xs,
   },
   streakBadge: {
     flexDirection: "row",

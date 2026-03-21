@@ -106,6 +106,16 @@ function getDayColor(day: CalendarDay): string {
 
 export function StreakCalendar({ habits }: StreakCalendarProps) {
   const [monthOffset, setMonthOffset] = useState(0);
+
+  if (habits.length === 0) {
+    return (
+      <View style={s.container}>
+        <View style={s.emptyState}>
+          <Text style={s.emptyText}>Add habits to start tracking streaks</Text>
+        </View>
+      </View>
+    );
+  }
   const today = useMemo(() => new Date(), []);
 
   const viewDate = useMemo(
@@ -261,5 +271,13 @@ const s = StyleSheet.create({
   weekdayText: {
     ...font.label,
     color: color.textTertiary,
+  },
+  emptyState: {
+    paddingVertical: space["2xl"],
+    alignItems: "center",
+  },
+  emptyText: {
+    ...font.caption,
+    textAlign: "center",
   },
 });

@@ -13,10 +13,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 
 import { useMe } from "@/modules/auth/hooks";
 import { useToday } from "@/modules/today/hooks";
+import { useProgression } from "@/modules/progression/hooks";
+import { color, font, space, radius, cardShadow, CONTENT_PADDING } from "@/shared/theme/tokens";
+import { PressableScale } from "@/shared/ui/PressableScale";
+import { AnimatedProgressBar } from "@/shared/ui/organisms/progress";
 import { StateCard } from "@/shared/ui/feedback/StateCard";
 import { BottomSheet } from "@/shared/ui/feedback/BottomSheet";
 import { SuccessSheet } from "@/shared/ui/feedback/SuccessSheet";
@@ -39,31 +42,6 @@ import type {
 import type { TaskCompletionResult } from "@/modules/tasks/types";
 import type { TodayHabit, TodayTask } from "@/modules/today/types";
 
-const page = {
-  bg: "#06070A",
-  bgTop: "#11141C",
-  text: "#F7F8FA",
-  textSoft: "#AAB2C8",
-  panel: "rgba(16, 19, 28, 0.9)",
-  panelBorder: "rgba(255,255,255,0.08)",
-  accent: "#FF6BD6",
-  mint: "#57E6A8",
-  mintDark: "#153E31",
-  blue: "#5B8CFF",
-  lilac: "#A871FF",
-  yellow: "#FFCD57",
-  peach: "#FF905C",
-  shadow: "rgba(0, 0, 0, 0.28)",
-};
-
-const vibe = {
-  cyan: "#34C6FF",
-  ember: "#FF6B2C",
-  emberSoft: "#FF8A4C",
-  panelAlt: "rgba(18, 19, 27, 0.92)",
-  line: "rgba(255,255,255,0.09)",
-};
-
 type SurfaceTab = "habits" | "tasks";
 type SheetKind = "habit" | "task";
 
@@ -79,6 +57,13 @@ type DraftTarget =
   | { kind: "habit"; id?: string }
   | { kind: "task"; id?: string };
 
+const IDENTITY_CHIPS = [
+  "Takes care of their body",
+  "Stays focused and clear",
+  "Stays calm under pressure",
+  "Keeps learning and growing",
+];
+
 function getGreeting() {
   const hour = new Date().getHours();
   if (hour < 12) return "Good morning";
@@ -91,6 +76,7 @@ export function HomeScreen() {
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const today = useToday(timezone);
   const me = useMe();
+  const progression = useProgression();
   const completeHabit = useCompleteHabit();
   const uncompleteHabit = useUncompleteHabit();
   const updateHabit = useUpdateHabit();
@@ -107,6 +93,8 @@ export function HomeScreen() {
   const [draftTarget, setDraftTarget] = useState<DraftTarget>({ kind: "habit" });
   const [reward, setReward] = useState<RewardState>(null);
   const [isManualRefresh, setIsManualRefresh] = useState(false);
+  const [habitAction, setHabitAction] = useState("");
+  const [selectedIdentity, setSelectedIdentity] = useState<string | null>(null);
 
   const snapshot = today.data;
   const habits = snapshot?.habits ?? [];
@@ -123,55 +111,20 @@ export function HomeScreen() {
   const completedHabits = habits.filter((habit) => habit.completedToday).length;
   const pendingHabits = habits.filter((habit) => !habit.completedToday);
   const openTasks = tasks.filter((task) => task.status === "open");
-  const totalDoneDays = Math.max(...habits.map((habit) => habit.streak.current), 0);
 
-  const heroCopy = useMemo(() => {
-    const habitCount = pendingHabits.length;
-    const taskCount = openTasks.length;
-    const thingText = habitCount === 1 ? "1 thing" : `${habitCount} things`;
-    const taskText = taskCount === 1 ? "1 task to clear" : `${taskCount} tasks to clear`;
+  const summary = useMemo(() => {
+    const parts: string[] = [];
+    if (pendingHabits.length > 0)
+      parts.push(`${pendingHabits.length} habit${pendingHabits.length > 1 ? "s" : ""}`);
+    if (openTasks.length > 0)
+      parts.push(`${openTasks.length} task${openTasks.length > 1 ? "s" : ""}`);
+    if (parts.length === 0) return "All done for today";
+    return `${parts.join(" \u00b7 ")} to go`;
+  }, [pendingHabits.length, openTasks.length]);
 
-    if (habits.length === 0) {
-      return {
-        title: `${getGreeting()}, ${name}.`,
-      };
-    }
-
-    if (habitCount === 0 && taskCount === 0) {
-      return {
-        title: `${getGreeting()}, ${name}. You won the day.`,
-      };
-    }
-
-    if (habitCount > 0 && taskCount === 0) {
-      return {
-        title: `${getGreeting()}, ${name}. Today, just ${thingText} to win your day.`,
-      };
-    }
-
-    if (habitCount === 0 && taskCount > 0) {
-      return {
-        title: `${getGreeting()}, ${name}. You've got ${taskCount === 1 ? "1 carried-over task" : `${taskCount} carried-over tasks`}.`,
-      };
-    }
-
-    return {
-      title: `${getGreeting()}, ${name}. Today, ${thingText} and ${taskText}.`,
-    };
-  }, [habits.length, name, openTasks.length, pendingHabits.length]);
-
-  const progressMicrocopy = useMemo(() => {
-    if (totalDoneDays <= 0) {
-      return "Today is a good day to begin.";
-    }
-    if (totalDoneDays === 1) {
-      return "You've shown up for 1 day. Keep it going.";
-    }
-    if (totalDoneDays < 7) {
-      return `You've shown up for ${totalDoneDays} days and counting.`;
-    }
-    return `You've shown up for ${totalDoneDays} days. That's real momentum.`;
-  }, [totalDoneDays]);
+  const xpPercent = progression.data
+    ? Math.min(progression.data.currentLevelXp / progression.data.nextLevelXp, 1)
+    : 0;
 
   const showReward = useCallback((next: RewardState) => {
     setReward(next);
@@ -276,66 +229,39 @@ export function HomeScreen() {
   );
 
   const handleQuickAdd = useCallback(() => {
+    if (sheetKind === "habit") {
+      const title = habitAction.trim();
+      if (!title) return;
+      const onSuccess = () => {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setHabitAction("");
+        setSelectedIdentity(null);
+        setSheetOpen(false);
+        setDraftTarget({ kind: "habit" });
+      };
+      if (draftTarget.id) {
+        updateHabit.mutate({ id: draftTarget.id, input: { title } }, { onSuccess });
+      } else {
+        createHabit.mutate({ title }, { onSuccess });
+      }
+      return;
+    }
+
     const title = sheetTitle.trim();
     if (!title) return;
-
-    if (draftTarget.kind === "habit" && draftTarget.id) {
-      updateHabit.mutate(
-        { id: draftTarget.id, input: { title } },
-        {
-          onSuccess: () => {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            setSheetTitle("");
-            setSheetOpen(false);
-            setDraftTarget({ kind: "habit" });
-          },
-        },
-      );
-      return;
+    const onSuccess = () => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setSheetTitle("");
+      setSheetOpen(false);
+      setDraftTarget({ kind: "task" });
+    };
+    if (draftTarget.id) {
+      updateTask.mutate({ id: draftTarget.id, input: { title } }, { onSuccess });
+    } else {
+      createTask.mutate({ title }, { onSuccess });
     }
-
-    if (draftTarget.kind === "task" && draftTarget.id) {
-      updateTask.mutate(
-        { id: draftTarget.id, input: { title } },
-        {
-          onSuccess: () => {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            setSheetTitle("");
-            setSheetOpen(false);
-            setDraftTarget({ kind: "task" });
-          },
-        },
-      );
-      return;
-    }
-
-    if (sheetKind === "habit") {
-      createHabit.mutate(
-        { title },
-        {
-          onSuccess: () => {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            setSheetTitle("");
-            setSheetOpen(false);
-            setDraftTarget({ kind: "habit" });
-          },
-        },
-      );
-      return;
-    }
-
-    createTask.mutate(
-      { title },
-      {
-        onSuccess: () => {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          setSheetTitle("");
-          setSheetOpen(false);
-          setDraftTarget({ kind: "task" });
-        },
-      },
-    );
   }, [
+    habitAction,
     createHabit,
     createTask,
     draftTarget,
@@ -347,16 +273,18 @@ export function HomeScreen() {
 
   const onRefresh = useCallback(() => {
     setIsManualRefresh(true);
-    Promise.all([today.refetch(), me.refetch()]).finally(() => {
+    Promise.all([today.refetch(), me.refetch(), progression.refetch()]).finally(() => {
       setIsManualRefresh(false);
     });
-  }, [me, today]);
+  }, [me, today, progression]);
 
   const openAddSheet = useCallback(
     (kind: SheetKind) => {
       setSheetKind(kind);
       setDraftTarget({ kind });
       setSheetTitle("");
+      setHabitAction("");
+      setSelectedIdentity(null);
       setSurfaceTab(kind === "habit" ? "habits" : "tasks");
       setSheetOpen(true);
     },
@@ -368,22 +296,27 @@ export function HomeScreen() {
       setDraftTarget(target);
       setSheetKind(target.kind);
       setSurfaceTab(target.kind === "habit" ? "habits" : "tasks");
-      setSheetTitle(title);
+      if (target.kind === "habit") {
+        setHabitAction(title);
+        setSelectedIdentity(null);
+      } else {
+        setSheetTitle(title);
+      }
       setSheetOpen(true);
     },
     [],
   );
 
-  const dateParts = new Date().toLocaleDateString("en-US", {
+  const dateStr = new Date().toLocaleDateString("en-US", {
     weekday: "long",
+    month: "short",
     day: "numeric",
-    month: "long",
-  }).split(", ");
+  });
 
   if (today.isLoading && !snapshot) {
     return (
       <View style={s.loadingContainer}>
-        <ActivityIndicator color={page.text} size="large" />
+        <ActivityIndicator color={color.text} size="large" />
       </View>
     );
   }
@@ -418,22 +351,8 @@ export function HomeScreen() {
       ? "New habit"
       : "New task";
 
-  const sheetButtonText = draftTarget.id
-    ? sheetKind === "habit"
-      ? "Save habit"
-      : "Save task"
-    : sheetKind === "habit"
-      ? "Add habit"
-      : "Add task";
-
   return (
     <View style={s.screen}>
-      <LinearGradient
-        colors={[page.bgTop, page.bg]}
-        start={{ x: 0.15, y: 0 }}
-        end={{ x: 0.85, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
       <ScrollView
         style={s.container}
         showsVerticalScrollIndicator={false}
@@ -445,23 +364,37 @@ export function HomeScreen() {
           <RefreshControl
             refreshing={isManualRefresh}
             onRefresh={onRefresh}
-            tintColor={page.text}
+            tintColor={color.text}
           />
         }
       >
-        <View style={s.topBar}>
-          <Pressable style={s.menuButton} onPress={() => router.push("/manage")}>
-            <Ionicons name="menu" size={30} color={page.text} />
-          </Pressable>
-          <View style={s.dateBlock}>
-            <Text style={s.dateWeekday}>{dateParts[0] ?? ""}</Text>
-            <Text style={s.dateDay}>{dateParts[1] ?? ""}</Text>
-          </View>
-        </View>
+        {/* Menu */}
+        <Pressable style={s.menuButton} onPress={() => router.push("/manage")}>
+          <Ionicons name="menu" size={26} color={color.text} />
+        </Pressable>
 
-        <View style={s.hero}>
-          <Text style={s.heroTitle}>{heroCopy.title}</Text>
-          <Text style={s.heroMicrocopy}>{progressMicrocopy}</Text>
+        {/* Date + level + XP bar */}
+        <View style={s.infoStrip}>
+          <Text style={s.dateText}>{dateStr}</Text>
+          {progression.data ? (
+            <View style={s.levelBadge}>
+              <Ionicons name="flash" size={12} color={color.cyan} />
+              <Text style={s.levelText}>Level {progression.data.level}</Text>
+            </View>
+          ) : null}
+        </View>
+        <AnimatedProgressBar
+          progress={xpPercent}
+          progressColor={color.mint}
+          trackColor={color.divider}
+          height={4}
+          borderRadius={radius.full}
+        />
+
+        {/* Compact greeting */}
+        <View style={s.greeting}>
+          <Text style={s.greetingTitle}>{getGreeting()}, {name}.</Text>
+          <Text style={s.greetingSummary}>{summary}</Text>
         </View>
 
         <View style={s.switchRow}>
@@ -494,12 +427,13 @@ export function HomeScreen() {
             </Pressable>
           </View>
 
-          <Pressable
+          <PressableScale
             style={s.addButton}
             onPress={() => openAddSheet(surfaceTab === "habits" ? "habit" : "task")}
+            scale={0.9}
           >
-            <Ionicons name="add" size={24} color="#FFFFFF" />
-          </Pressable>
+            <Ionicons name="add" size={24} color={color.textInverse} />
+          </PressableScale>
         </View>
 
         {surfaceTab === "habits" ? (
@@ -510,13 +444,13 @@ export function HomeScreen() {
                 <Text style={s.emptyText}>
                   Start with one or two. This app should feel focused, not crowded.
                 </Text>
-                <Pressable style={s.emptyAction} onPress={() => openAddSheet("habit")}>
+                <PressableScale style={s.emptyAction} onPress={() => openAddSheet("habit")}>
                   <Text style={s.emptyActionText}>Add your first habit</Text>
-                </Pressable>
+                </PressableScale>
               </View>
             ) : (
-              habits.map((habit, index) => (
-                <Pressable
+              habits.map((habit) => (
+                <PressableScale
                   key={habit.id}
                   style={[
                     s.itemCard,
@@ -528,9 +462,9 @@ export function HomeScreen() {
                 >
                   <View style={[s.leadingOrb, habit.completedToday && s.leadingOrbDone]}>
                     {habit.completedToday ? (
-                      <Ionicons name="checkmark" size={16} color={page.text} />
+                      <Ionicons name="checkmark" size={16} color={color.text} />
                     ) : (
-                      <Ionicons name="flash" size={14} color={vibe.cyan} />
+                      <Ionicons name="flash" size={14} color={color.cyan} />
                     )}
                   </View>
                   <View style={s.rowContent}>
@@ -539,21 +473,21 @@ export function HomeScreen() {
                     </Text>
                     <Text style={s.rowSubtitle}>
                       {habit.completedToday
-                        ? "Locked in for today"
+                        ? "Done for today"
                         : habit.streak.current > 0
-                          ? `${habit.streak.current} day streak running`
-                          : "Ready when you are"}
+                          ? `${habit.streak.current} day streak`
+                          : ""}
                     </Text>
                   </View>
                   <View style={s.rowMeta}>
                     {habit.streak.current > 0 ? (
                       <View style={s.streakBadge}>
-                        <Ionicons name="flame" size={12} color={vibe.ember} />
+                        <Ionicons name="flame" size={12} color={color.ember} />
                         <Text style={s.streakText}>{habit.streak.current}</Text>
                       </View>
                     ) : null}
                   </View>
-                </Pressable>
+                </PressableScale>
               ))
             )}
           </View>
@@ -565,13 +499,13 @@ export function HomeScreen() {
                 <Text style={s.emptyText}>
                   Keep tasks secondary. Habits are the main loop here.
                 </Text>
-                <Pressable style={s.emptyAction} onPress={() => openAddSheet("task")}>
+                <PressableScale style={s.emptyAction} onPress={() => openAddSheet("task")}>
                   <Text style={s.emptyActionText}>Add a task</Text>
-                </Pressable>
+                </PressableScale>
               </View>
             ) : (
               tasks.map((task) => (
-                <Pressable
+                <PressableScale
                   key={task.id}
                   style={[
                     s.itemCard,
@@ -585,20 +519,18 @@ export function HomeScreen() {
                     <Ionicons
                       name={task.status === "completed" ? "checkmark-circle" : "ellipse"}
                       size={20}
-                      color={task.status === "completed" ? page.mint : vibe.cyan}
+                      color={task.status === "completed" ? color.mint : color.cyan}
                     />
                   </View>
                   <View style={s.rowContent}>
                     <Text style={[s.rowTitle, task.status === "completed" && s.rowTitleDone]}>
                       {task.title}
                     </Text>
-                    <Text style={s.rowSubtitle}>
-                      {task.status === "completed"
-                        ? "Completed. Tap to reopen if that was accidental"
-                        : "Secondary to habits, but still here when needed"}
-                    </Text>
+                    {task.status === "completed" ? (
+                      <Text style={s.rowSubtitle}>Done</Text>
+                    ) : null}
                   </View>
-                </Pressable>
+                </PressableScale>
               ))
             )}
           </View>
@@ -627,36 +559,107 @@ export function HomeScreen() {
         onDismiss={() => setSheetOpen(false)}
         title={sheetTitleText}
       >
-        <Text style={s.sheetSubtitle}>
-          {draftTarget.id
-            ? "Keep the wording simple and something you would actually do."
-            : sheetKind === "habit"
-              ? "Keep it small enough to actually repeat."
-              : "Useful, but still secondary to your habit loop."}
-        </Text>
-        <TextInput
-          style={s.sheetInput}
-          placeholder={
-            sheetKind === "habit"
-              ? "Walk outside for 10 mins"
-              : "Send the proposal"
-          }
-          placeholderTextColor={page.textSoft}
-          value={sheetTitle}
-          onChangeText={setSheetTitle}
-          returnKeyType="done"
-          editable={!isSubmitting}
-          onSubmitEditing={handleQuickAdd}
-        />
-        <Pressable
-          style={[s.sheetAction, (!sheetTitle.trim() || isSubmitting) && s.sheetActionDisabled]}
-          onPress={handleQuickAdd}
-          disabled={!sheetTitle.trim() || isSubmitting}
-        >
-          <Text style={s.sheetActionText}>
-            {isSubmitting ? "Saving..." : sheetButtonText}
-          </Text>
-        </Pressable>
+        {sheetKind === "habit" ? (
+          <>
+            {!draftTarget.id && (
+              <>
+                <Text style={s.identityPrompt}>
+                  I'm becoming someone who...
+                </Text>
+                <View style={s.chipRow}>
+                  {IDENTITY_CHIPS.map((chip) => (
+                    <PressableScale
+                      key={chip}
+                      style={[
+                        s.chip,
+                        selectedIdentity === chip && s.chipSelected,
+                      ]}
+                      onPress={() =>
+                        setSelectedIdentity(
+                          selectedIdentity === chip ? null : chip,
+                        )
+                      }
+                    >
+                      <Text
+                        style={[
+                          s.chipText,
+                          selectedIdentity === chip && s.chipTextSelected,
+                        ]}
+                      >
+                        {chip}
+                      </Text>
+                    </PressableScale>
+                  ))}
+                </View>
+              </>
+            )}
+            <Text style={s.actionPrompt}>
+              {draftTarget.id
+                ? "Habit name"
+                : "What's one thing that person does every day?"}
+            </Text>
+            <TextInput
+              style={s.sheetInput}
+              placeholder="Walk outside for 30 minutes"
+              placeholderTextColor={color.textTertiary}
+              value={habitAction}
+              onChangeText={setHabitAction}
+              returnKeyType="done"
+              editable={!isSubmitting}
+              onSubmitEditing={handleQuickAdd}
+            />
+            <Pressable
+              style={[
+                s.sheetAction,
+                (!habitAction.trim() || isSubmitting) && s.sheetActionDisabled,
+              ]}
+              onPress={handleQuickAdd}
+              disabled={!habitAction.trim() || isSubmitting}
+            >
+              <Text style={s.sheetActionText}>
+                {isSubmitting
+                  ? "Saving..."
+                  : draftTarget.id
+                    ? "Save habit"
+                    : "Add habit"}
+              </Text>
+            </Pressable>
+          </>
+        ) : (
+          <>
+            <Text style={s.sheetSubtitle}>
+              {draftTarget.id
+                ? "Keep the wording simple and something you would actually do."
+                : "Useful, but still secondary to your habit loop."}
+            </Text>
+            <TextInput
+              style={s.sheetInput}
+              placeholder="Send the proposal"
+              placeholderTextColor={color.textSecondary}
+              value={sheetTitle}
+              onChangeText={setSheetTitle}
+              returnKeyType="done"
+              editable={!isSubmitting}
+              onSubmitEditing={handleQuickAdd}
+            />
+            <Pressable
+              style={[
+                s.sheetAction,
+                (!sheetTitle.trim() || isSubmitting) && s.sheetActionDisabled,
+              ]}
+              onPress={handleQuickAdd}
+              disabled={!sheetTitle.trim() || isSubmitting}
+            >
+              <Text style={s.sheetActionText}>
+                {isSubmitting
+                  ? "Saving..."
+                  : draftTarget.id
+                    ? "Save task"
+                    : "Add task"}
+              </Text>
+            </Pressable>
+          </>
+        )}
       </BottomSheet>
     </View>
   );
@@ -665,70 +668,69 @@ export function HomeScreen() {
 const s = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: page.bg,
+    backgroundColor: color.bg,
   },
   container: {
     flex: 1,
   },
   content: {
-    paddingHorizontal: 22,
-    gap: 20,
+    paddingHorizontal: CONTENT_PADDING,
+    gap: space.xl,
   },
   loadingContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: page.bg,
+    backgroundColor: color.bg,
   },
-  topBar: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-  },
-  dateBlock: {
-    alignItems: "flex-end",
-    gap: 2,
-    paddingTop: 12,
-  },
-  dateWeekday: {
-    fontSize: 22,
-    lineHeight: 26,
-    fontWeight: "600",
-    letterSpacing: -0.3,
-    color: page.text,
-  },
-  dateDay: {
-    fontSize: 13,
-    fontWeight: "600",
-    letterSpacing: -0.1,
-    color: page.textSoft,
-  },
+
+  // Top
   menuButton: {
-    paddingTop: 8,
-    paddingRight: 2,
-    paddingBottom: 8,
+    alignSelf: "flex-start",
+    padding: space.xs,
+  },
+  infoStrip: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    justifyContent: "center",
   },
-  hero: {
-    paddingTop: 46,
-    paddingRight: 16,
+  dateText: {
+    ...font.body,
+    color: color.textSecondary,
   },
-  heroTitle: {
-    fontSize: 32,
-    lineHeight: 35,
+  levelBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.sm,
+    paddingHorizontal: space.md,
+    paddingVertical: space.xs,
+    borderRadius: radius.full,
+    backgroundColor: color.cyanMuted,
+  },
+  levelText: {
+    ...font.label,
+    fontWeight: "700",
+    color: color.text,
+  },
+
+  // Greeting
+  greeting: {
+    gap: space.xs,
+  },
+  greetingTitle: {
+    fontSize: 26,
+    lineHeight: 32,
     fontWeight: "600",
-    letterSpacing: -0.72,
-    color: page.text,
+    letterSpacing: -0.4,
+    color: color.text,
   },
-  heroMicrocopy: {
-    marginTop: 8,
-    fontSize: 14,
-    lineHeight: 18,
-    color: page.textSoft,
+  greetingSummary: {
+    ...font.caption,
   },
+
+  // Tabs
   switchRow: {
-    marginTop: 4,
+    marginTop: space.xs,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -736,55 +738,51 @@ const s = StyleSheet.create({
   segmented: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 18,
+    gap: space.xl,
   },
   segment: {
-    paddingBottom: 7,
+    paddingBottom: space.sm,
   },
   segmentActive: {
     borderBottomWidth: 2,
-    borderBottomColor: page.mint,
+    borderBottomColor: color.mint,
   },
   segmentText: {
-    fontSize: 16,
+    ...font.body,
     fontWeight: "600",
-    color: "#6D768F",
+    color: color.textTertiary,
   },
   segmentTextActive: {
-    color: page.text,
+    color: color.text,
   },
   addButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 48,
+    height: 48,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: page.mint,
-    shadowColor: page.shadow,
-    shadowOpacity: 1,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 7 },
+    backgroundColor: color.mint,
+    ...cardShadow,
   },
+
+  // Cards
   cardColumn: {
-    gap: 12,
+    gap: space.md,
   },
   itemCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
-    borderRadius: 22,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: vibe.panelAlt,
+    gap: space.lg,
+    borderRadius: radius.xl,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.lg,
+    backgroundColor: color.bgCard,
     borderWidth: 1,
-    borderColor: vibe.line,
-    shadowColor: page.shadow,
-    shadowOpacity: 1,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
+    borderColor: color.border,
+    ...cardShadow,
   },
   itemCardDone: {
-    backgroundColor: "rgba(16, 25, 21, 0.95)",
+    backgroundColor: "rgba(16, 25, 21, 0.92)",
   },
   leadingOrb: {
     width: 34,
@@ -792,128 +790,143 @@ const s = StyleSheet.create({
     borderRadius: 17,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(52, 198, 255, 0.12)",
+    backgroundColor: color.cyanMuted,
   },
   leadingOrbDone: {
-    backgroundColor: "rgba(52, 211, 153, 0.2)",
+    backgroundColor: color.mintMuted,
   },
   taskCheckbox: {
-    width: 28,
+    width: 34,
     alignItems: "center",
     justifyContent: "center",
   },
   rowContent: {
     flex: 1,
-    gap: 4,
+    gap: space.xs,
   },
   rowTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: page.text,
+    ...font.body,
+    fontWeight: "600",
   },
   rowTitleDone: {
-    color: page.textSoft,
+    color: color.textSecondary,
   },
   rowSubtitle: {
-    fontSize: 13,
-    lineHeight: 18,
-    color: page.textSoft,
+    ...font.label,
   },
   rowMeta: {
     alignItems: "flex-end",
-    gap: 8,
   },
   streakBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 999,
-    backgroundColor: "rgba(255, 107, 44, 0.16)",
+    gap: space.xs,
+    paddingHorizontal: space.sm,
+    paddingVertical: space.xs,
+    borderRadius: radius.full,
+    backgroundColor: color.emberMuted,
   },
   streakText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: vibe.emberSoft,
+    ...font.label,
+    color: color.emberSoft,
   },
+
+  // Empty states
   emptyCard: {
-    borderRadius: 24,
-    padding: 22,
-    backgroundColor: page.panel,
+    borderRadius: radius.xl,
+    padding: space.xl,
+    backgroundColor: color.bgCard,
     borderWidth: 1,
-    borderColor: page.panelBorder,
-    gap: 10,
+    borderColor: color.border,
+    gap: space.md,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: page.text,
+    ...font.headline,
   },
   emptyText: {
-    fontSize: 15,
-    lineHeight: 21,
-    color: page.textSoft,
+    ...font.caption,
+    lineHeight: 22,
   },
   emptyAction: {
-    marginTop: 4,
+    marginTop: space.xs,
     alignSelf: "flex-start",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 999,
-    backgroundColor: page.mint,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    borderRadius: radius.full,
+    backgroundColor: color.mint,
   },
   emptyActionText: {
-    fontSize: 14,
+    ...font.caption,
     fontWeight: "700",
-    color: "#08110D",
+    color: color.textInverse,
   },
 
-  // Reward sheet content
-  rewardBody: {
-    gap: 8,
+  // Identity chips
+  identityPrompt: {
+    ...font.headline,
+    marginBottom: space.lg,
   },
-  rewardSubtitle: {
-    fontSize: 16,
-    lineHeight: 22,
-    color: page.textSoft,
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: space.sm,
+    marginBottom: space["2xl"],
   },
-  rewardMeta: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: page.mint,
+  chip: {
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: color.border,
+    backgroundColor: color.divider,
+  },
+  chipSelected: {
+    borderColor: color.mint,
+    backgroundColor: color.mintMuted,
+  },
+  chipText: {
+    ...font.caption,
+    color: color.textSecondary,
+  },
+  chipTextSelected: {
+    color: color.mint,
+    fontWeight: "600",
+  },
+  actionPrompt: {
+    ...font.caption,
+    fontWeight: "600",
+    color: color.textSecondary,
+    marginBottom: space.md,
   },
 
-  // Add/edit sheet
+  // Sheet form
   sheetSubtitle: {
-    fontSize: 15,
-    lineHeight: 21,
-    color: page.textSoft,
-    marginBottom: 16,
+    ...font.caption,
+    marginBottom: space.lg,
   },
   sheetInput: {
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    borderRadius: radius.lg,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.lg,
     fontSize: 16,
-    color: page.text,
-    backgroundColor: "rgba(255,255,255,0.06)",
+    color: color.text,
+    backgroundColor: color.divider,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-    marginBottom: 20,
+    borderColor: color.border,
+    marginBottom: space.xl,
   },
   sheetAction: {
-    borderRadius: 14,
-    paddingVertical: 16,
+    borderRadius: radius.lg,
+    paddingVertical: space.lg,
     alignItems: "center",
-    backgroundColor: page.mint,
+    backgroundColor: color.mint,
   },
   sheetActionDisabled: {
     opacity: 0.4,
   },
   sheetActionText: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: "#08110D",
+    ...font.body,
+    fontWeight: "700",
+    color: color.textInverse,
   },
 });

@@ -1,11 +1,12 @@
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@clerk/clerk-expo";
 import { useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import { useMe } from "@/modules/auth/hooks";
 import { useProgression } from "@/modules/progression/hooks";
-import { colors } from "@/shared/theme/colors";
+import { color, font, space, radius, CONTENT_PADDING, cardShadow } from "@/shared/theme/tokens";
+import { PressableScale } from "@/shared/ui/PressableScale";
 
 export function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -21,12 +22,18 @@ export function ProfileScreen() {
     "User";
 
   return (
-    <View style={[s.container, { paddingTop: insets.top + 16 }]}>
+    <ScrollView
+      style={s.container}
+      contentContainerStyle={[
+        s.content,
+        { paddingTop: insets.top + space.lg, paddingBottom: insets.bottom + space["3xl"] },
+      ]}
+    >
       <Text style={s.heading}>Profile</Text>
 
       <View style={s.card}>
         <View style={s.avatarCircle}>
-          <Ionicons name="person" size={32} color={colors.accent} />
+          <Ionicons name="person" size={32} color={color.mint} />
         </View>
         <Text style={s.name}>{displayName}</Text>
         {me.data?.email && (
@@ -41,86 +48,84 @@ export function ProfileScreen() {
         </View>
       )}
 
-      <Pressable
+      <View style={{ flex: 1, minHeight: space["5xl"] }} />
+
+      <PressableScale
         style={s.signOutBtn}
         onPress={async () => {
           await signOut();
           queryClient.clear();
         }}
       >
-        <Ionicons name="log-out-outline" size={20} color={colors.danger} />
+        <Ionicons name="log-out-outline" size={20} color={color.danger} />
         <Text style={s.signOutText}>Sign out</Text>
-      </Pressable>
-    </View>
+      </PressableScale>
+    </ScrollView>
   );
 }
 
 const s = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.bg,
-    paddingHorizontal: 20,
+    backgroundColor: color.bg,
+  },
+  content: {
+    paddingHorizontal: CONTENT_PADDING,
+    flexGrow: 1,
   },
   heading: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: colors.text,
-    marginBottom: 24,
+    ...font.display,
+    marginBottom: space["2xl"],
   },
   card: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
+    backgroundColor: color.bgCard,
+    borderRadius: radius.xl,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
-    padding: 20,
+    borderColor: color.border,
+    padding: space.xl,
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: space.lg,
+    ...cardShadow,
   },
   avatarCircle: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: colors.cardBorder,
+    backgroundColor: color.mintMuted,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: space.md,
   },
   name: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: colors.text,
+    ...font.headline,
   },
   email: {
-    fontSize: 14,
-    color: colors.textMuted,
-    marginTop: 4,
+    ...font.caption,
+    marginTop: space.xs,
   },
   statLabel: {
-    fontSize: 16,
+    ...font.body,
     fontWeight: "600",
-    color: colors.accent,
+    color: color.mint,
   },
   statValue: {
-    fontSize: 14,
-    color: colors.textMuted,
-    marginTop: 4,
+    ...font.caption,
+    marginTop: space.xs,
   },
   signOutBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: colors.card,
+    gap: space.sm,
+    padding: space.lg,
+    borderRadius: radius.xl,
+    backgroundColor: color.bgCard,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
-    marginTop: "auto",
-    marginBottom: 20,
+    borderColor: color.border,
   },
   signOutText: {
-    fontSize: 16,
+    ...font.body,
     fontWeight: "600",
-    color: colors.danger,
+    color: color.danger,
   },
 });

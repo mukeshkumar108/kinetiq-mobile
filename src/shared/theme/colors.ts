@@ -1,22 +1,28 @@
+import { color } from "./tokens";
+
+/**
+ * Legacy color map — kept so existing imports don't break.
+ * New code should import from `@/shared/theme/tokens` directly.
+ */
 export const colors = {
-  bg: "#06070A",
-  bgElevated: "#0B0E14",
-  bgPanel: "#10141D",
-  card: "rgba(15, 18, 28, 0.82)",
-  cardStrong: "#131826",
-  cardBorder: "rgba(181, 194, 255, 0.14)",
-  cardBorderStrong: "rgba(151, 165, 255, 0.24)",
-  text: "#FFFFFF",
-  textMuted: "#98A2B3",
-  textSoft: "#C8D0F7",
-  accent: "#7C5CFC",
-  accentGlow: "#A78BFA",
-  accentElectric: "#31C6FF",
-  xp: "#34D399",
-  streak: "#FF9D33",
-  success: "#22C55E",
-  danger: "#EF4444",
-  tabBar: "#080A10",
-  tabInactive: "#667085",
-  overlay: "rgba(3, 5, 10, 0.58)",
+  bg: color.bg,
+  bgElevated: color.bgRaised,
+  bgPanel: color.bgCardSolid,
+  card: color.bgCard,
+  cardStrong: color.bgCardSolid,
+  cardBorder: color.borderStrong,
+  cardBorderStrong: color.borderStrong,
+  text: color.text,
+  textMuted: color.textSecondary,
+  textSoft: color.textSecondary,
+  accent: color.mint,
+  accentGlow: color.mint,
+  accentElectric: color.cyan,
+  xp: color.mint,
+  streak: color.ember,
+  success: color.mint,
+  danger: color.danger,
+  tabBar: color.bgSheet,
+  tabInactive: color.textTertiary,
+  overlay: color.overlay,
 } as const;

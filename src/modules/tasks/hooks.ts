@@ -2,6 +2,7 @@ import { useAuth } from "@clerk/clerk-expo";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { invalidateQueryKeys } from "@/api/invalidate";
 import { getTaskInvalidationKeys, queryKeys } from "@/api/query-keys";
+import type { TodaySnapshot } from "@/modules/today/types";
 import {
   fetchTasks,
   fetchTask,
@@ -70,7 +71,26 @@ export function useCompleteTask() {
 
   return useMutation({
     mutationFn: (id: string) => completeTask(id),
-    onSuccess: () => invalidateQueryKeys(qc, getTaskInvalidationKeys(userId)),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: queryKeys.todayRoot(userId) });
+      const todayQueries = qc.getQueriesData<TodaySnapshot>({ queryKey: queryKeys.todayRoot(userId) });
+      qc.setQueriesData<TodaySnapshot>(
+        { queryKey: queryKeys.todayRoot(userId) },
+        (old) => old ? {
+          ...old,
+          tasks: old.tasks.map((t) =>
+            t.id === id ? { ...t, status: "completed" as const, completedToday: true } : t,
+          ),
+        } : old,
+      );
+      return { todayQueries };
+    },
+    onError: (_err, _id, ctx) => {
+      ctx?.todayQueries?.forEach(([key, data]) => {
+        if (data) qc.setQueryData(key, data);
+      });
+    },
+    onSettled: () => invalidateQueryKeys(qc, getTaskInvalidationKeys(userId)),
   });
 }
 
@@ -80,6 +100,25 @@ export function useReopenTask() {
 
   return useMutation({
     mutationFn: (id: string) => reopenTask(id),
-    onSuccess: () => invalidateQueryKeys(qc, getTaskInvalidationKeys(userId)),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: queryKeys.todayRoot(userId) });
+      const todayQueries = qc.getQueriesData<TodaySnapshot>({ queryKey: queryKeys.todayRoot(userId) });
+      qc.setQueriesData<TodaySnapshot>(
+        { queryKey: queryKeys.todayRoot(userId) },
+        (old) => old ? {
+          ...old,
+          tasks: old.tasks.map((t) =>
+            t.id === id ? { ...t, status: "open" as const, completedToday: false } : t,
+          ),
+        } : old,
+      );
+      return { todayQueries };
+    },
+    onError: (_err, _id, ctx) => {
+      ctx?.todayQueries?.forEach(([key, data]) => {
+        if (data) qc.setQueryData(key, data);
+      });
+    },
+    onSettled: () => invalidateQueryKeys(qc, getTaskInvalidationKeys(userId)),
   });
 }

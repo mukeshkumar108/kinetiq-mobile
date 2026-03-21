@@ -23,7 +23,8 @@ import {
   useDeleteTask,
 } from "@/modules/tasks/hooks";
 import type { Habit } from "@/modules/habits/types";
-import { colors } from "@/shared/theme/colors";
+import { color, font, space, radius, CONTENT_PADDING, cardShadow } from "@/shared/theme/tokens";
+import { PressableScale } from "@/shared/ui/PressableScale";
 import { StateCard } from "@/shared/ui/feedback/StateCard";
 import { BottomSheet } from "@/shared/ui/feedback/BottomSheet";
 
@@ -32,30 +33,25 @@ const MAX_OPEN_TASKS = 3;
 export function ManageScreen() {
   const insets = useSafeAreaInsets();
 
-  // Data
   const habitsQuery = useHabits(true);
   const tasksQuery = useTasks("open");
 
-  // Mutations
   const createHabit = useCreateHabit();
   const updateHabit = useUpdateHabit();
   const createTask = useCreateTask();
   const deleteTask = useDeleteTask();
 
-  // Bottom sheet state
   const [addSheet, setAddSheet] = useState<"habit" | "task" | null>(null);
   const [inputValue, setInputValue] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [isManualRefresh, setIsManualRefresh] = useState(false);
 
-  // Derived data
   const allHabits = habitsQuery.data ?? [];
   const activeHabits = allHabits.filter((h) => !h.isArchived);
   const archivedHabits = allHabits.filter((h) => h.isArchived);
   const openTasks = tasksQuery.data ?? [];
   const atTaskLimit = openTasks.length >= MAX_OPEN_TASKS;
 
-  // Handlers
   const dismissSheet = useCallback(() => {
     setAddSheet(null);
     setInputValue("");
@@ -119,7 +115,7 @@ export function ManageScreen() {
   if (habitsQuery.isLoading && !habitsQuery.data) {
     return (
       <View style={s.loadingContainer}>
-        <ActivityIndicator color={colors.accent} size="large" />
+        <ActivityIndicator color={color.mint} size="large" />
       </View>
     );
   }
@@ -146,19 +142,19 @@ export function ManageScreen() {
     <>
       <ScrollView
         style={s.container}
-        contentContainerStyle={[s.content, { paddingTop: insets.top + 16 }]}
+        contentContainerStyle={[s.content, { paddingTop: insets.top + space.lg }]}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
             refreshing={isManualRefresh}
             onRefresh={onRefresh}
-            tintColor={colors.accent}
+            tintColor={color.text}
           />
         }
       >
         <Text style={s.heading}>Manage</Text>
 
-        {/* ── Habits Section ── */}
+        {/* Habits */}
         <View style={s.section}>
           <View style={s.sectionHeader}>
             <Text style={s.sectionTitle}>Habits</Text>
@@ -166,16 +162,14 @@ export function ManageScreen() {
           </View>
 
           <View style={s.listCard}>
-            {/* Add row */}
-            <Pressable
+            <PressableScale
               style={s.addRow}
               onPress={() => setAddSheet("habit")}
             >
-              <Ionicons name="add" size={20} color={colors.accent} />
+              <Ionicons name="add" size={20} color={color.mint} />
               <Text style={s.addRowText}>New habit</Text>
-            </Pressable>
+            </PressableScale>
 
-            {/* Active habits */}
             {activeHabits.map((habit) => (
               <View key={habit.id} style={[s.row, s.rowBorder]}>
                 <View style={s.rowContent}>
@@ -183,11 +177,11 @@ export function ManageScreen() {
                 </View>
                 {habit.streak.current > 0 && (
                   <View style={s.streakBadge}>
-                    <Ionicons name="flame" size={14} color={colors.streak} />
+                    <Ionicons name="flame" size={14} color={color.ember} />
                     <Text style={s.streakText}>{habit.streak.current}</Text>
                   </View>
                 )}
-                <Pressable
+                <PressableScale
                   onPress={() => handleArchiveHabit(habit)}
                   hitSlop={8}
                   disabled={updateHabit.isPending}
@@ -195,14 +189,13 @@ export function ManageScreen() {
                   <Ionicons
                     name="archive-outline"
                     size={20}
-                    color={colors.textMuted}
+                    color={color.textSecondary}
                   />
-                </Pressable>
+                </PressableScale>
               </View>
             ))}
           </View>
 
-          {/* Archived toggle */}
           {archivedHabits.length > 0 && (
             <>
               <Pressable
@@ -215,7 +208,7 @@ export function ManageScreen() {
                 <Ionicons
                   name={showArchived ? "chevron-up" : "chevron-down"}
                   size={16}
-                  color={colors.textMuted}
+                  color={color.textSecondary}
                 />
               </Pressable>
 
@@ -231,7 +224,7 @@ export function ManageScreen() {
                           {habit.title}
                         </Text>
                       </View>
-                      <Pressable
+                      <PressableScale
                         onPress={() => handleArchiveHabit(habit)}
                         hitSlop={8}
                         disabled={updateHabit.isPending}
@@ -239,9 +232,9 @@ export function ManageScreen() {
                         <Ionicons
                           name="arrow-undo-outline"
                           size={20}
-                          color={colors.accent}
+                          color={color.mint}
                         />
-                      </Pressable>
+                      </PressableScale>
                     </View>
                   ))}
                 </View>
@@ -250,7 +243,7 @@ export function ManageScreen() {
           )}
         </View>
 
-        {/* ── Tasks Section ── */}
+        {/* Tasks */}
         <View style={s.section}>
           <View style={s.sectionHeader}>
             <Text style={s.sectionTitle}>Tasks</Text>
@@ -260,31 +253,29 @@ export function ManageScreen() {
           </View>
 
           <View style={s.listCard}>
-            {/* Add row */}
             {atTaskLimit ? (
               <View style={s.addRow}>
-                <Ionicons name="add" size={20} color={colors.textMuted} />
+                <Ionicons name="add" size={20} color={color.textTertiary} />
                 <Text style={s.disabledText}>
                   {MAX_OPEN_TASKS}/{MAX_OPEN_TASKS} — focus on what you have
                 </Text>
               </View>
             ) : (
-              <Pressable
+              <PressableScale
                 style={s.addRow}
                 onPress={() => setAddSheet("task")}
               >
-                <Ionicons name="add" size={20} color={colors.accent} />
+                <Ionicons name="add" size={20} color={color.mint} />
                 <Text style={s.addRowText}>New task</Text>
-              </Pressable>
+              </PressableScale>
             )}
 
-            {/* Open tasks */}
             {openTasks.map((task) => (
               <View key={task.id} style={[s.row, s.rowBorder]}>
                 <View style={s.rowContent}>
                   <Text style={s.rowTitle}>{task.title}</Text>
                 </View>
-                <Pressable
+                <PressableScale
                   onPress={() => handleDeleteTask(task.id)}
                   hitSlop={8}
                   disabled={deleteTask.isPending}
@@ -292,18 +283,17 @@ export function ManageScreen() {
                   <Ionicons
                     name="trash-outline"
                     size={20}
-                    color={colors.danger}
+                    color={color.danger}
                   />
-                </Pressable>
+                </PressableScale>
               </View>
             ))}
           </View>
         </View>
 
-        <View style={{ height: 32 }} />
+        <View style={{ height: space["3xl"] }} />
       </ScrollView>
 
-      {/* Add bottom sheet */}
       <BottomSheet
         visible={addSheet !== null}
         onDismiss={dismissSheet}
@@ -314,7 +304,7 @@ export function ManageScreen() {
           value={inputValue}
           onChangeText={setInputValue}
           placeholder={addSheet === "habit" ? "Habit name" : "Task name"}
-          placeholderTextColor={colors.textMuted}
+          placeholderTextColor={color.textSecondary}
           returnKeyType="done"
           editable={!isSubmitting}
           onSubmitEditing={handleSubmit}
@@ -336,148 +326,133 @@ export function ManageScreen() {
 const s = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.bg,
+    backgroundColor: color.bg,
   },
   content: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingHorizontal: CONTENT_PADDING,
+    paddingBottom: space.xl,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: colors.bg,
+    backgroundColor: color.bg,
   },
   heading: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: colors.text,
-    marginBottom: 24,
+    ...font.display,
+    marginBottom: space["2xl"],
   },
 
-  // Sections
   section: {
-    marginBottom: 20,
+    marginBottom: space.xl,
   },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: space.md,
   },
   sectionTitle: {
+    ...font.headline,
     fontSize: 18,
-    fontWeight: "600",
-    color: colors.text,
   },
   sectionCount: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textMuted,
+    ...font.label,
   },
 
-  // List card
   listCard: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
+    backgroundColor: color.bgCard,
+    borderRadius: radius.xl,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
+    borderColor: color.border,
     overflow: "hidden",
+    ...cardShadow,
   },
 
-  // Rows
   row: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 14,
-    gap: 12,
+    padding: space.lg,
+    gap: space.md,
   },
   rowBorder: {
     borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
+    borderTopColor: color.divider,
   },
   rowContent: {
     flex: 1,
   },
   rowTitle: {
-    fontSize: 16,
-    color: colors.text,
+    ...font.body,
   },
 
-  // Add row
   addRow: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 14,
-    gap: 12,
+    padding: space.lg,
+    gap: space.md,
   },
   addRowText: {
-    fontSize: 16,
-    color: colors.textMuted,
+    ...font.body,
+    color: color.textSecondary,
   },
 
-  // Streak badge
   streakBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 3,
-    backgroundColor: "rgba(245, 158, 11, 0.15)",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    gap: space.xs,
+    backgroundColor: color.emberMuted,
+    paddingHorizontal: space.sm,
+    paddingVertical: space.xs,
+    borderRadius: radius.sm,
   },
   streakText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: colors.streak,
+    ...font.label,
+    color: color.ember,
   },
 
-  // Archived
   archivedToggle: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    paddingVertical: 12,
+    gap: space.sm,
+    paddingVertical: space.md,
   },
   archivedToggleText: {
-    fontSize: 14,
-    color: colors.textMuted,
+    ...font.caption,
   },
   archivedText: {
-    color: colors.textMuted,
+    color: color.textSecondary,
   },
 
-  // Disabled
   disabledText: {
-    fontSize: 14,
-    color: colors.textMuted,
+    ...font.caption,
+    color: color.textTertiary,
   },
 
-  // Bottom sheet form
   sheetInput: {
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderRadius: 14,
+    backgroundColor: color.divider,
+    borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    borderColor: color.border,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.lg,
     fontSize: 16,
-    color: colors.text,
-    marginBottom: 20,
+    color: color.text,
+    marginBottom: space.xl,
   },
   sheetButton: {
-    backgroundColor: colors.accent,
-    borderRadius: 14,
-    paddingVertical: 16,
+    backgroundColor: color.mint,
+    borderRadius: radius.lg,
+    paddingVertical: space.lg,
     alignItems: "center",
   },
   sheetButtonDisabled: {
     opacity: 0.4,
   },
   sheetButtonText: {
-    fontSize: 16,
+    ...font.body,
     fontWeight: "700",
-    color: colors.text,
+    color: color.textInverse,
   },
 });

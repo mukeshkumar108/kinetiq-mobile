@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Animated, StyleSheet, Text, View } from "react-native";
-import { colors } from "@/shared/theme/colors";
+import { color, font, space } from "@/shared/theme/tokens";
 
 interface SuccessSheetProps {
   emoji: string;
@@ -122,9 +122,9 @@ export function SuccessSheet({
 const s = StyleSheet.create({
   container: {
     alignItems: "center",
-    paddingTop: 10,
-    paddingBottom: 20,
-    gap: 10,
+    paddingTop: space.md,
+    paddingBottom: space.xl,
+    gap: space.md,
   },
   hero: {
     alignItems: "center",
@@ -137,15 +137,15 @@ const s = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: "rgba(52, 198, 255, 0.14)",
+    backgroundColor: color.cyanMuted,
   },
   emoji: {
     fontSize: 56,
-    marginBottom: 4,
+    marginBottom: space.xs,
   },
   pointsBurst: {
     position: "absolute",
-    top: 8,
+    top: space.sm,
     alignSelf: "center",
   },
   pointsText: {
@@ -153,29 +153,26 @@ const s = StyleSheet.create({
     lineHeight: 24,
     fontWeight: "900",
     letterSpacing: 0.3,
-    color: "#34C6FF",
+    color: color.cyan,
     textShadowColor: "rgba(52, 198, 255, 0.45)",
     textShadowRadius: 12,
     textShadowOffset: { width: 0, height: 0 },
   },
   title: {
-    fontSize: 20,
+    ...font.headline,
     fontWeight: "800",
-    color: colors.text,
     textAlign: "center",
   },
   subtitle: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: colors.textMuted,
+    ...font.caption,
     textAlign: "center",
-    paddingHorizontal: 16,
+    paddingHorizontal: space.lg,
   },
   meta: {
-    fontSize: 15,
+    ...font.caption,
     fontWeight: "700",
-    color: "#57E6A8",
+    color: color.mint,
     textAlign: "center",
-    marginTop: 4,
+    marginTop: space.xs,
   },
 });

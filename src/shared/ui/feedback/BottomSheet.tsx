@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import {
   Animated,
+  Dimensions,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -11,7 +12,9 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors } from "@/shared/theme/colors";
+import { color, font, space, radius } from "@/shared/theme/tokens";
+
+const SCREEN_HEIGHT = Dimensions.get("window").height;
 
 interface BottomSheetProps {
   visible: boolean;
@@ -29,7 +32,7 @@ export function BottomSheet({
   const insets = useSafeAreaInsets();
   const [modalVisible, setModalVisible] = useState(false);
   const backdropOpacity = useRef(new Animated.Value(0)).current;
-  const sheetTranslateY = useRef(new Animated.Value(500)).current;
+  const sheetTranslateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const isAnimating = useRef(false);
 
   useEffect(() => {
@@ -45,9 +48,9 @@ export function BottomSheet({
           }),
           Animated.spring(sheetTranslateY, {
             toValue: 0,
-            damping: 24,
-            stiffness: 220,
-            mass: 0.9,
+            damping: 28,
+            stiffness: 380,
+            mass: 0.7,
             useNativeDriver: true,
           }),
         ]).start(() => {
@@ -68,9 +71,11 @@ export function BottomSheet({
         duration: 200,
         useNativeDriver: true,
       }),
-      Animated.timing(sheetTranslateY, {
-        toValue: 500,
-        duration: 220,
+      Animated.spring(sheetTranslateY, {
+        toValue: SCREEN_HEIGHT,
+        damping: 20,
+        stiffness: 200,
+        mass: 0.9,
         useNativeDriver: true,
       }),
     ]).start(() => {
@@ -105,7 +110,7 @@ export function BottomSheet({
             style={[
               s.sheet,
               {
-                paddingBottom: insets.bottom + 32,
+                paddingBottom: insets.bottom + space["3xl"],
                 transform: [{ translateY: sheetTranslateY }],
               },
             ]}
@@ -115,13 +120,13 @@ export function BottomSheet({
               <View style={s.header}>
                 <Text style={s.title}>{title}</Text>
                 <Pressable onPress={handleDismiss} hitSlop={12} style={s.closeBtn}>
-                  <Ionicons name="close" size={20} color={colors.textMuted} />
+                  <Ionicons name="close" size={20} color={color.textSecondary} />
                 </Pressable>
               </View>
             ) : (
               <View style={s.headerNoTitle}>
                 <Pressable onPress={handleDismiss} hitSlop={12} style={s.closeBtn}>
-                  <Ionicons name="close" size={20} color={colors.textMuted} />
+                  <Ionicons name="close" size={20} color={color.textSecondary} />
                 </Pressable>
               </View>
             )}
@@ -143,45 +148,44 @@ const s = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.6)",
+    backgroundColor: color.overlay,
   },
   sheet: {
-    backgroundColor: colors.tabBar,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 24,
+    backgroundColor: color.bgSheet,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    paddingHorizontal: space["2xl"],
     minHeight: "42%",
   },
   handle: {
     width: 40,
     height: 5,
     borderRadius: 3,
-    backgroundColor: "rgba(255,255,255,0.15)",
+    backgroundColor: color.border,
     alignSelf: "center",
-    marginTop: 12,
-    marginBottom: 20,
+    marginTop: space.md,
+    marginBottom: space.xl,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: space["2xl"],
   },
   headerNoTitle: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    marginBottom: 8,
+    marginBottom: space.sm,
   },
   title: {
-    fontSize: 22,
+    ...font.headline,
     fontWeight: "700",
-    color: colors.text,
   },
   closeBtn: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: radius.lg,
+    backgroundColor: color.divider,
     justifyContent: "center",
     alignItems: "center",
   },

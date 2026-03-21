@@ -2,6 +2,7 @@ import { useAuth } from "@clerk/clerk-expo";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { invalidateQueryKeys } from "@/api/invalidate";
 import { getHabitInvalidationKeys, queryKeys } from "@/api/query-keys";
+import type { TodaySnapshot } from "@/modules/today/types";
 import {
   fetchHabits,
   fetchHabit,
@@ -71,7 +72,30 @@ export function useCompleteHabit() {
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input?: HabitCompleteInput }) =>
       completeHabit(id, input),
-    onSuccess: () => invalidateQueryKeys(qc, getHabitInvalidationKeys(userId)),
+    onMutate: async ({ id }) => {
+      // Cancel outgoing refetches so they don't overwrite our optimistic update
+      await qc.cancelQueries({ queryKey: queryKeys.todayRoot(userId) });
+      // Snapshot previous value for rollback
+      const todayQueries = qc.getQueriesData<TodaySnapshot>({ queryKey: queryKeys.todayRoot(userId) });
+      // Optimistically flip completedToday
+      qc.setQueriesData<TodaySnapshot>(
+        { queryKey: queryKeys.todayRoot(userId) },
+        (old) => old ? {
+          ...old,
+          habits: old.habits.map((h) =>
+            h.id === id ? { ...h, completedToday: true, streak: { ...h.streak, current: h.streak.current + 1 } } : h,
+          ),
+        } : old,
+      );
+      return { todayQueries };
+    },
+    onError: (_err, _vars, ctx) => {
+      // Rollback on error
+      ctx?.todayQueries?.forEach(([key, data]) => {
+        if (data) qc.setQueryData(key, data);
+      });
+    },
+    onSettled: () => invalidateQueryKeys(qc, getHabitInvalidationKeys(userId)),
   });
 }
 
@@ -82,6 +106,25 @@ export function useUncompleteHabit() {
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input?: HabitCompleteInput }) =>
       uncompleteHabit(id, input),
-    onSuccess: () => invalidateQueryKeys(qc, getHabitInvalidationKeys(userId)),
+    onMutate: async ({ id }) => {
+      await qc.cancelQueries({ queryKey: queryKeys.todayRoot(userId) });
+      const todayQueries = qc.getQueriesData<TodaySnapshot>({ queryKey: queryKeys.todayRoot(userId) });
+      qc.setQueriesData<TodaySnapshot>(
+        { queryKey: queryKeys.todayRoot(userId) },
+        (old) => old ? {
+          ...old,
+          habits: old.habits.map((h) =>
+            h.id === id ? { ...h, completedToday: false, streak: { ...h.streak, current: Math.max(0, h.streak.current - 1) } } : h,
+          ),
+        } : old,
+      );
+      return { todayQueries };
+    },
+    onError: (_err, _vars, ctx) => {
+      ctx?.todayQueries?.forEach(([key, data]) => {
+        if (data) qc.setQueryData(key, data);
+      });
+    },
+    onSettled: () => invalidateQueryKeys(qc, getHabitInvalidationKeys(userId)),
   });
 }

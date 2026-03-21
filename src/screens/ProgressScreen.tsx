@@ -123,7 +123,7 @@ export function ProgressScreen() {
                 height={10}
                 borderRadius={radius.full}
                 useGradient
-                gradientColors={[color.cyan, color.ember]}
+                gradientColors={[color.mint, color.mint]}
               />
               <View style={s.heroStatsRow}>
                 <View style={s.heroStatChip}>

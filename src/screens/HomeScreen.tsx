@@ -19,10 +19,10 @@ import { useToday } from "@/modules/today/hooks";
 import { useProgression } from "@/modules/progression/hooks";
 import { color, font, space, radius, cardShadow, CONTENT_PADDING } from "@/shared/theme/tokens";
 import { PressableScale } from "@/shared/ui/PressableScale";
-import { AnimatedProgressBar } from "@/shared/ui/organisms/progress";
 import { StateCard } from "@/shared/ui/feedback/StateCard";
 import { BottomSheet } from "@/shared/ui/feedback/BottomSheet";
 import { SuccessSheet } from "@/shared/ui/feedback/SuccessSheet";
+import { Toast } from "@/shared/ui/molecules/Toast";
 import {
   useCompleteHabit,
   useCreateHabit,
@@ -122,10 +122,6 @@ export function HomeScreen() {
     return `${parts.join(" \u00b7 ")} to go`;
   }, [pendingHabits.length, openTasks.length]);
 
-  const xpPercent = progression.data
-    ? Math.min(progression.data.currentLevelXp / progression.data.nextLevelXp, 1)
-    : 0;
-
   const showReward = useCallback((next: RewardState) => {
     setReward(next);
   }, []);
@@ -188,14 +184,20 @@ export function HomeScreen() {
       if (habit.completedToday) {
         uncompleteHabit.mutate(
           { id: habit.id, input: { timezone } },
-          { onSuccess: (result) => handleHabitUndo(result, habit) },
+          {
+            onSuccess: (result) => handleHabitUndo(result, habit),
+            onError: () => Toast.show("Couldn't undo habit. Try again.", { type: "error" }),
+          },
         );
         return;
       }
 
       completeHabit.mutate(
         { id: habit.id, input: { timezone } },
-        { onSuccess: (result) => handleHabitCompletion(result, habit) },
+        {
+          onSuccess: (result) => handleHabitCompletion(result, habit),
+          onError: () => Toast.show("Couldn't save habit. Try again.", { type: "error" }),
+        },
       );
     },
     [
@@ -215,6 +217,7 @@ export function HomeScreen() {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         reopenTask.mutate(task.id, {
           onSuccess: () => handleTaskReopen(task),
+          onError: () => Toast.show("Couldn't reopen task. Try again.", { type: "error" }),
         });
         return;
       }
@@ -223,6 +226,7 @@ export function HomeScreen() {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       completeTask.mutate(task.id, {
         onSuccess: (result) => handleTaskCompletion(result, task),
+        onError: () => Toast.show("Couldn't complete task. Try again.", { type: "error" }),
       });
     },
     [completeTask, handleTaskCompletion, handleTaskReopen, reopenTask],
@@ -239,10 +243,11 @@ export function HomeScreen() {
         setSheetOpen(false);
         setDraftTarget({ kind: "habit" });
       };
+      const onError = () => Toast.show("Couldn't save habit. Try again.", { type: "error" });
       if (draftTarget.id) {
-        updateHabit.mutate({ id: draftTarget.id, input: { title } }, { onSuccess });
+        updateHabit.mutate({ id: draftTarget.id, input: { title } }, { onSuccess, onError });
       } else {
-        createHabit.mutate({ title }, { onSuccess });
+        createHabit.mutate({ title }, { onSuccess, onError });
       }
       return;
     }
@@ -255,10 +260,11 @@ export function HomeScreen() {
       setSheetOpen(false);
       setDraftTarget({ kind: "task" });
     };
+    const onError = () => Toast.show("Couldn't save task. Try again.", { type: "error" });
     if (draftTarget.id) {
-      updateTask.mutate({ id: draftTarget.id, input: { title } }, { onSuccess });
+      updateTask.mutate({ id: draftTarget.id, input: { title } }, { onSuccess, onError });
     } else {
-      createTask.mutate({ title }, { onSuccess });
+      createTask.mutate({ title }, { onSuccess, onError });
     }
   }, [
     habitAction,
@@ -373,23 +379,19 @@ export function HomeScreen() {
           <Ionicons name="menu" size={26} color={color.text} />
         </Pressable>
 
-        {/* Date + level + XP bar */}
+        {/* Date + level */}
         <View style={s.infoStrip}>
           <Text style={s.dateText}>{dateStr}</Text>
           {progression.data ? (
             <View style={s.levelBadge}>
               <Ionicons name="flash" size={12} color={color.cyan} />
-              <Text style={s.levelText}>Level {progression.data.level}</Text>
+              <Text style={s.levelText}>
+                Level {progression.data.level}
+                <Text style={s.levelXp}> · {progression.data.currentLevelXp} XP</Text>
+              </Text>
             </View>
           ) : null}
         </View>
-        <AnimatedProgressBar
-          progress={xpPercent}
-          progressColor={color.mint}
-          trackColor={color.divider}
-          height={4}
-          borderRadius={radius.full}
-        />
 
         {/* Compact greeting */}
         <View style={s.greeting}>
@@ -711,6 +713,10 @@ const s = StyleSheet.create({
     ...font.label,
     fontWeight: "700",
     color: color.text,
+  },
+  levelXp: {
+    fontWeight: "500",
+    color: color.textSecondary,
   },
 
   // Greeting

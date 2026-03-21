@@ -11,6 +11,7 @@ import { fetchMe } from "@/modules/auth/api";
 import { queryClient } from "@/api/query-client";
 import { queryKeys } from "@/api/query-keys";
 import { ToastProviderWithViewport } from "@/shared/ui/molecules/Toast";
+import { ErrorBoundary } from "@/shared/ui/ErrorBoundary";
 
 function InitialLayout() {
   const { isLoaded, isSignedIn, userId, getToken } = useAuth();
@@ -66,7 +67,8 @@ function InitialLayout() {
 
 export default function RootLayout() {
   return (
-    <SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
         <ClerkProvider
           publishableKey={env.CLERK_PUBLISHABLE_KEY}
           tokenCache={tokenCache}
@@ -74,11 +76,14 @@ export default function RootLayout() {
           <ClerkLoaded>
             <QueryClientProvider client={queryClient}>
               <ToastProviderWithViewport>
-                <InitialLayout />
+                <ErrorBoundary>
+                  <InitialLayout />
+                </ErrorBoundary>
               </ToastProviderWithViewport>
             </QueryClientProvider>
           </ClerkLoaded>
         </ClerkProvider>
-    </SafeAreaProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }

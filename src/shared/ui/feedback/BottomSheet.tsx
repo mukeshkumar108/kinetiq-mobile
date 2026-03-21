@@ -100,7 +100,7 @@ export function BottomSheet({
     >
       <KeyboardAvoidingView
         style={s.keyboardWrap}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <View style={s.overlay}>
           <Animated.View style={[s.backdrop, { opacity: backdropOpacity }]}>

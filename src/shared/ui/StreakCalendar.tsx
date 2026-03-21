@@ -1,5 +1,6 @@
-import { useMemo } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { useMemo, useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { color, font, space, radius, cardShadow } from "@/shared/theme/tokens";
 import type { TodayHabit } from "@/modules/today/types";
 
@@ -22,10 +23,13 @@ function dateKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function buildCalendarDays(habits: TodayHabit[], today: Date): CalendarDay[] {
-  const year = today.getFullYear();
-  const month = today.getMonth();
-  const todayDate = today.getDate();
+function buildCalendarDays(
+  habits: TodayHabit[],
+  viewDate: Date,
+  today: Date,
+): CalendarDay[] {
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
   const todayStr = dateKey(today);
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
@@ -33,14 +37,18 @@ function buildCalendarDays(habits: TodayHabit[], today: Date): CalendarDay[] {
   const firstOfMonth = new Date(year, month, 1);
   const startDayOfWeek = (firstOfMonth.getDay() + 6) % 7;
 
-  // For each habit, build a Set of date keys within its current streak
+  // Build streak date sets relative to actual today
   const habitStreakSets = habits.map((habit) => {
     const dates = new Set<string>();
     if (habit.streak.current <= 0) return dates;
 
     const startOffset = habit.completedToday ? 0 : 1;
     for (let i = 0; i < habit.streak.current; i++) {
-      const d = new Date(year, month, todayDate - startOffset - i);
+      const d = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate() - startOffset - i,
+      );
       dates.add(dateKey(d));
     }
     return dates;
@@ -58,8 +66,16 @@ function buildCalendarDays(habits: TodayHabit[], today: Date): CalendarDay[] {
   // Actual month days
   const days: CalendarDay[] = [];
   for (let d = 1; d <= daysInMonth; d++) {
-    const key = dateKey(new Date(year, month, d));
-    const isFuture = d > todayDate;
+    const dayDate = new Date(year, month, d);
+    const key = dateKey(dayDate);
+    // Compare dates at day precision (ignore time)
+    const isFuture =
+      dayDate.getFullYear() > today.getFullYear() ||
+      (dayDate.getFullYear() === today.getFullYear() &&
+        dayDate.getMonth() > today.getMonth()) ||
+      (dayDate.getFullYear() === today.getFullYear() &&
+        dayDate.getMonth() === today.getMonth() &&
+        d > today.getDate());
     const isToday = key === todayStr;
 
     let intensity = 0;
@@ -89,21 +105,50 @@ function getDayColor(day: CalendarDay): string {
 }
 
 export function StreakCalendar({ habits }: StreakCalendarProps) {
-  const today = new Date();
-  const monthLabel = today.toLocaleDateString("en-US", {
+  const [monthOffset, setMonthOffset] = useState(0);
+  const today = useMemo(() => new Date(), []);
+
+  const viewDate = useMemo(
+    () => new Date(today.getFullYear(), today.getMonth() + monthOffset, 1),
+    [today, monthOffset],
+  );
+
+  const monthLabel = viewDate.toLocaleDateString("en-US", {
     month: "long",
     year: "numeric",
   });
 
   const days = useMemo(
-    () => buildCalendarDays(habits, today),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [habits],
+    () => buildCalendarDays(habits, viewDate, today),
+    [habits, viewDate, today],
   );
+
+  const canGoForward = monthOffset < 0;
 
   return (
     <View style={s.container}>
-      <Text style={s.monthLabel}>{monthLabel}</Text>
+      <View style={s.monthHeader}>
+        <Pressable
+          style={s.navBtn}
+          onPress={() => setMonthOffset((o) => o - 1)}
+          hitSlop={8}
+        >
+          <Ionicons name="chevron-back" size={18} color={color.textSecondary} />
+        </Pressable>
+        <Text style={s.monthLabel}>{monthLabel}</Text>
+        <Pressable
+          style={[s.navBtn, !canGoForward && s.navBtnDisabled]}
+          onPress={() => canGoForward && setMonthOffset((o) => o + 1)}
+          hitSlop={8}
+          disabled={!canGoForward}
+        >
+          <Ionicons
+            name="chevron-forward"
+            size={18}
+            color={canGoForward ? color.textSecondary : color.divider}
+          />
+        </Pressable>
+      </View>
 
       <View style={s.weekdayRow}>
         {WEEKDAYS.map((label, i) => (
@@ -153,10 +198,24 @@ const s = StyleSheet.create({
     padding: space.lg,
     ...cardShadow,
   },
+  monthHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: space.md,
+  },
   monthLabel: {
     ...font.body,
     fontWeight: "600",
-    marginBottom: space.md,
+  },
+  navBtn: {
+    width: 28,
+    height: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  navBtnDisabled: {
+    opacity: 0.3,
   },
   weekdayRow: {
     flexDirection: "row",

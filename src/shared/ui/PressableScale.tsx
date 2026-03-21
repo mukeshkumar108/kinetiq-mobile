@@ -5,6 +5,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 
 interface PressableScaleProps {
   scale?: number;
@@ -30,6 +31,7 @@ export function PressableScale({
   const anim = useRef(new Animated.Value(1)).current;
 
   const onPressIn = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Animated.spring(anim, {
       toValue: scale,
       damping: 15,

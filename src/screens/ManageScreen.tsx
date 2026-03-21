@@ -27,6 +27,7 @@ import { color, font, space, radius, CONTENT_PADDING, cardShadow } from "@/share
 import { PressableScale } from "@/shared/ui/PressableScale";
 import { StateCard } from "@/shared/ui/feedback/StateCard";
 import { BottomSheet } from "@/shared/ui/feedback/BottomSheet";
+import { Toast } from "@/shared/ui/molecules/Toast";
 
 const MAX_OPEN_TASKS = 3;
 
@@ -45,6 +46,7 @@ export function ManageScreen() {
   const [inputValue, setInputValue] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [isManualRefresh, setIsManualRefresh] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const allHabits = habitsQuery.data ?? [];
   const activeHabits = allHabits.filter((h) => !h.isArchived);
@@ -70,6 +72,7 @@ export function ManageScreen() {
             setInputValue("");
             setAddSheet(null);
           },
+          onError: () => Toast.show("Couldn't add habit. Try again.", { type: "error" }),
         },
       );
     } else if (addSheet === "task") {
@@ -81,6 +84,7 @@ export function ManageScreen() {
             setInputValue("");
             setAddSheet(null);
           },
+          onError: () => Toast.show("Couldn't add task. Try again.", { type: "error" }),
         },
       );
     }
@@ -89,21 +93,32 @@ export function ManageScreen() {
   const handleArchiveHabit = useCallback(
     (habit: Habit) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      updateHabit.mutate({
-        id: habit.id,
-        input: { isArchived: !habit.isArchived },
-      });
+      updateHabit.mutate(
+        { id: habit.id, input: { isArchived: !habit.isArchived } },
+        { onError: () => Toast.show("Couldn't update habit. Try again.", { type: "error" }) },
+      );
     },
     [updateHabit],
   );
 
   const handleDeleteTask = useCallback(
     (id: string) => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      deleteTask.mutate(id);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      setPendingDeleteId(id);
     },
-    [deleteTask],
+    [],
   );
+
+  const confirmDeleteTask = useCallback(() => {
+    if (!pendingDeleteId) return;
+    deleteTask.mutate(pendingDeleteId, {
+      onSuccess: () => setPendingDeleteId(null),
+      onError: () => {
+        setPendingDeleteId(null);
+        Toast.show("Couldn't delete task. Try again.", { type: "error" });
+      },
+    });
+  }, [pendingDeleteId, deleteTask]);
 
   const onRefresh = useCallback(() => {
     setIsManualRefresh(true);
@@ -319,6 +334,31 @@ export function ManageScreen() {
           </Text>
         </Pressable>
       </BottomSheet>
+
+      <BottomSheet
+        visible={pendingDeleteId !== null}
+        onDismiss={() => setPendingDeleteId(null)}
+        title="Delete task?"
+      >
+        <Text style={s.confirmText}>
+          This task will be permanently removed. This can't be undone.
+        </Text>
+        <Pressable
+          style={[s.sheetButton, s.sheetButtonDanger, deleteTask.isPending && s.sheetButtonDisabled]}
+          onPress={confirmDeleteTask}
+          disabled={deleteTask.isPending}
+        >
+          <Text style={s.sheetButtonText}>
+            {deleteTask.isPending ? "Deleting..." : "Delete"}
+          </Text>
+        </Pressable>
+        <Pressable
+          style={s.cancelButton}
+          onPress={() => setPendingDeleteId(null)}
+        >
+          <Text style={s.cancelButtonText}>Cancel</Text>
+        </Pressable>
+      </BottomSheet>
     </>
   );
 }
@@ -447,6 +487,9 @@ const s = StyleSheet.create({
     paddingVertical: space.lg,
     alignItems: "center",
   },
+  sheetButtonDanger: {
+    backgroundColor: color.danger,
+  },
   sheetButtonDisabled: {
     opacity: 0.4,
   },
@@ -454,5 +497,19 @@ const s = StyleSheet.create({
     ...font.body,
     fontWeight: "700",
     color: color.textInverse,
+  },
+  confirmText: {
+    ...font.caption,
+    lineHeight: 22,
+    marginBottom: space.xl,
+  },
+  cancelButton: {
+    marginTop: space.md,
+    paddingVertical: space.lg,
+    alignItems: "center",
+  },
+  cancelButtonText: {
+    ...font.body,
+    color: color.textSecondary,
   },
 });

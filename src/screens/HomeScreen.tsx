@@ -35,11 +35,6 @@ import {
   useReopenTask,
   useUpdateTask,
 } from "@/modules/tasks/hooks";
-import type {
-  HabitCompletionResult,
-  HabitUncompleteResult,
-} from "@/modules/habits/types";
-import type { TaskCompletionResult } from "@/modules/tasks/types";
 import type { TodayHabit, TodayTask } from "@/modules/today/types";
 
 type SurfaceTab = "habits" | "tasks";
@@ -126,88 +121,38 @@ export function HomeScreen() {
     setReward(next);
   }, []);
 
-  const handleHabitCompletion = useCallback(
-    (result: HabitCompletionResult, habit: TodayHabit) => {
-      showReward({
-        emoji: "🔥",
-        title: "Habit locked in",
-        subtitle:
-          result.unlockedAchievements[0]?.title ??
-          `${habit.title} is complete for today.`,
-        meta:
-          result.streak.current > 0
-            ? `${result.streak.current} day streak alive`
-            : undefined,
-        points: 10,
-      });
-    },
-    [showReward],
-  );
-
-  const handleHabitUndo = useCallback(
-    (_result: HabitUncompleteResult, habit: TodayHabit) => {
-      showReward({
-        emoji: "↩️",
-        title: "Habit reopened",
-        subtitle: `${habit.title} is back on your list.`,
-      });
-    },
-    [showReward],
-  );
-
-  const handleTaskCompletion = useCallback(
-    (result: TaskCompletionResult, task: TodayTask) => {
-      showReward({
-        emoji: "🎯",
-        title: "Task cleared",
-        subtitle:
-          result.unlockedAchievements[0]?.title ?? `${task.title} is out of the way.`,
-        points: result.grantedXp,
-      });
-    },
-    [showReward],
-  );
-
-  const handleTaskReopen = useCallback((task: TodayTask) => {
-    showReward({
-      emoji: "↩️",
-      title: "Task reopened",
-      subtitle: `${task.title} is back on your list.`,
-    });
-  }, [showReward]);
-
   const handleHabitToggle = useCallback(
     (habit: TodayHabit) => {
       if (habitMutationPending) return;
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
       if (habit.completedToday) {
+        showReward({
+          emoji: "↩️",
+          title: "Habit reopened",
+          subtitle: `${habit.title} is back on your list.`,
+        });
         uncompleteHabit.mutate(
           { id: habit.id, input: { timezone } },
-          {
-            onSuccess: (result) => handleHabitUndo(result, habit),
-            onError: () => Toast.show("Couldn't undo habit. Try again.", { type: "error" }),
-          },
+          { onError: () => Toast.show("Couldn't undo habit. Try again.", { type: "error" }) },
         );
         return;
       }
 
+      const newStreak = habit.streak.current + 1;
+      showReward({
+        emoji: "🔥",
+        title: "Habit locked in",
+        subtitle: `${habit.title} is complete for today.`,
+        meta: newStreak > 0 ? `${newStreak} day streak alive` : undefined,
+        points: 10,
+      });
       completeHabit.mutate(
         { id: habit.id, input: { timezone } },
-        {
-          onSuccess: (result) => handleHabitCompletion(result, habit),
-          onError: () => Toast.show("Couldn't save habit. Try again.", { type: "error" }),
-        },
+        { onError: () => Toast.show("Couldn't save habit. Try again.", { type: "error" }) },
       );
     },
-    [
-      completeHabit,
-      habitMutationPending,
-      handleHabitCompletion,
-      handleHabitUndo,
-      timezone,
-      uncompleteHabit,
-    ],
+    [completeHabit, habitMutationPending, showReward, timezone, uncompleteHabit],
   );
 
   const handleTaskToggle = useCallback(
@@ -215,8 +160,12 @@ export function HomeScreen() {
       if (task.status === "completed") {
         if (reopenTask.isPending) return;
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        showReward({
+          emoji: "↩️",
+          title: "Task reopened",
+          subtitle: `${task.title} is back on your list.`,
+        });
         reopenTask.mutate(task.id, {
-          onSuccess: () => handleTaskReopen(task),
           onError: () => Toast.show("Couldn't reopen task. Try again.", { type: "error" }),
         });
         return;
@@ -224,12 +173,17 @@ export function HomeScreen() {
 
       if (completeTask.isPending) return;
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      showReward({
+        emoji: "🎯",
+        title: "Task cleared",
+        subtitle: `${task.title} is out of the way.`,
+        points: 25,
+      });
       completeTask.mutate(task.id, {
-        onSuccess: (result) => handleTaskCompletion(result, task),
         onError: () => Toast.show("Couldn't complete task. Try again.", { type: "error" }),
       });
     },
-    [completeTask, handleTaskCompletion, handleTaskReopen, reopenTask],
+    [completeTask, reopenTask, showReward],
   );
 
   const handleQuickAdd = useCallback(() => {

@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, View } from "react-native";
 import type { AchievementSummary } from "@/modules/achievements/types";
-import { colors } from "@/shared/theme/colors";
+import { color } from "@/shared/theme/tokens";
 
 interface RewardToastContentProps {
   title: string;
@@ -23,7 +23,7 @@ export function RewardToastContent({
   return (
     <View style={s.wrap}>
       <View style={s.iconWrap}>
-        <Ionicons name="sparkles" size={16} color={colors.text} />
+        <Ionicons name="sparkles" size={16} color={color.text} />
       </View>
       <View style={s.content}>
         <Text style={s.title}>{title}</Text>
@@ -36,13 +36,13 @@ export function RewardToastContent({
           ) : null}
           {typeof streak === "number" && streak > 0 ? (
             <View style={s.metaChip}>
-              <Ionicons name="flame" size={12} color={colors.streak} />
+              <Ionicons name="flame" size={12} color={color.ember} />
               <Text style={s.metaChipText}>{streak} streak</Text>
             </View>
           ) : null}
           {achievement ? (
             <View style={s.metaChip}>
-              <Ionicons name="trophy" size={12} color={colors.xp} />
+              <Ionicons name="trophy" size={12} color={color.mint} />
               <Text style={s.metaChipText}>{achievement.title}</Text>
             </View>
           ) : null}
@@ -73,7 +73,7 @@ const s = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: "700",
-    color: colors.text,
+    color: color.text,
   },
   subtitle: {
     marginTop: 2,
@@ -102,6 +102,6 @@ const s = StyleSheet.create({
   metaChipText: {
     fontSize: 12,
     fontWeight: "700",
-    color: colors.text,
+    color: color.text,
   },
 });

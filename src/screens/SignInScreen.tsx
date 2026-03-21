@@ -18,7 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Button } from "@/shared/ui/base/button";
 import SpinButton from "@/shared/ui/micro-interactions/spin-button";
 import GrainyGradient from "@/shared/ui/organisms/grainy-gradient";
-import { colors } from "@/shared/theme/colors";
+import { color } from "@/shared/theme/tokens";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -202,10 +202,10 @@ export function SignInScreen() {
           >
             <LinearButtonSurface>
               {loading ? (
-                <ActivityIndicator color={colors.bg} />
+                <ActivityIndicator color={color.bg} />
               ) : (
                 <View style={s.googleInner}>
-                  <Ionicons name="logo-google" size={18} color={colors.bg} />
+                  <Ionicons name="logo-google" size={18} color={color.bg} />
                   <Text style={s.googleText}>Enter with Google</Text>
                 </View>
               )}
@@ -250,7 +250,7 @@ export function SignInScreen() {
             <TextInput
               style={s.input}
               placeholder="6-digit code"
-              placeholderTextColor={colors.textMuted}
+              placeholderTextColor={color.textSecondary}
               value={code}
               onChangeText={setCode}
               keyboardType="number-pad"
@@ -267,8 +267,8 @@ export function SignInScreen() {
               disabled={loading}
               onPress={() => void handleVerify()}
               colors={{
-                idle: { background: vibe.ember, text: colors.text },
-                active: { background: vibe.emberSoft, text: colors.text },
+                idle: { background: vibe.ember, text: color.text },
+                active: { background: vibe.emberSoft, text: color.text },
               }}
               buttonStyle={{
                 paddingHorizontal: 30,
@@ -292,7 +292,7 @@ export function SignInScreen() {
           <TextInput
             style={s.input}
             placeholder="you@kinetiq.app"
-            placeholderTextColor={colors.textMuted}
+            placeholderTextColor={color.textSecondary}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -304,7 +304,7 @@ export function SignInScreen() {
           <TextInput
             style={s.input}
             placeholder="••••••••"
-            placeholderTextColor={colors.textMuted}
+            placeholderTextColor={color.textSecondary}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -320,8 +320,8 @@ export function SignInScreen() {
             disabled={loading}
             onPress={() => void primaryAction()}
             colors={{
-              idle: { background: vibe.ember, text: colors.text },
-              active: { background: vibe.emberSoft, text: colors.text },
+              idle: { background: vibe.ember, text: color.text },
+              active: { background: vibe.emberSoft, text: color.text },
             }}
             buttonStyle={{
               paddingHorizontal: 30,
@@ -339,7 +339,7 @@ export function SignInScreen() {
   if (!signInLoaded || !signUpLoaded) {
     return (
       <View style={s.loadingScreen}>
-        <ActivityIndicator color={colors.text} />
+        <ActivityIndicator color={color.text} />
       </View>
     );
   }
@@ -358,7 +358,7 @@ export function SignInScreen() {
 
       <KeyboardAvoidingView
         style={s.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -383,7 +383,7 @@ export function SignInScreen() {
                 <Text style={s.momentumChipText}>Streak heat</Text>
               </View>
               <View style={s.momentumChip}>
-                <Ionicons name="trophy" size={12} color={colors.text} />
+                <Ionicons name="trophy" size={12} color={color.text} />
                 <Text style={s.momentumChipText}>XP pressure</Text>
               </View>
             </View>
@@ -401,7 +401,7 @@ export function SignInScreen() {
                   setPendingVerification(null);
                 }}
               >
-                <Ionicons name="arrow-back" size={14} color={colors.textMuted} />
+                <Ionicons name="arrow-back" size={14} color={color.textSecondary} />
                 <Text style={s.backText}>Back</Text>
               </Pressable>
             ) : null}
@@ -423,7 +423,7 @@ function LinearButtonSurface({ children }: { children: React.ReactNode }) {
 const s = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colors.bg,
+    backgroundColor: color.bg,
   },
   flex: {
     flex: 1,
@@ -435,7 +435,7 @@ const s = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: colors.bg,
+    backgroundColor: color.bg,
   },
   scrollContent: {
     flexGrow: 1,
@@ -458,7 +458,7 @@ const s = StyleSheet.create({
     fontSize: 44,
     lineHeight: 46,
     fontWeight: "800",
-    color: colors.text,
+    color: color.text,
   },
   subtitle: {
     maxWidth: 336,
@@ -486,7 +486,7 @@ const s = StyleSheet.create({
   momentumChipText: {
     fontSize: 12,
     fontWeight: "600",
-    color: colors.text,
+    color: color.text,
   },
   card: {
     backgroundColor: vibe.panel,
@@ -527,7 +527,7 @@ const s = StyleSheet.create({
   googleText: {
     fontSize: 16,
     fontWeight: "700",
-    color: colors.bg,
+    color: color.bg,
   },
   dividerRow: {
     flexDirection: "row",
@@ -560,7 +560,7 @@ const s = StyleSheet.create({
   secondaryActionText: {
     fontSize: 15,
     fontWeight: "600",
-    color: colors.text,
+    color: color.text,
   },
   tertiaryAction: {
     alignItems: "center",
@@ -589,12 +589,12 @@ const s = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     fontSize: 16,
-    color: colors.text,
+    color: color.text,
   },
   error: {
     fontSize: 13,
     lineHeight: 18,
-    color: colors.danger,
+    color: color.danger,
   },
   spinWrap: {
     alignItems: "flex-start",
@@ -609,6 +609,6 @@ const s = StyleSheet.create({
   },
   backText: {
     fontSize: 14,
-    color: colors.textMuted,
+    color: color.textSecondary,
   },
 });

@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { ComponentProps } from "react";
-import { colors } from "@/shared/theme/colors";
+import { color } from "@/shared/theme/tokens";
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
 
@@ -22,7 +22,7 @@ export function StateCard({
 }: StateCardProps) {
   return (
     <View style={s.card}>
-      <Ionicons name={icon} size={28} color={colors.textMuted} />
+      <Ionicons name={icon} size={28} color={color.textSecondary} />
       <Text style={s.title}>{title}</Text>
       <Text style={s.description}>{description}</Text>
       {actionLabel && onAction ? (
@@ -36,10 +36,10 @@ export function StateCard({
 
 const s = StyleSheet.create({
   card: {
-    backgroundColor: colors.card,
+    backgroundColor: color.bgCard,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
+    borderColor: color.border,
     paddingHorizontal: 20,
     paddingVertical: 24,
     alignItems: "center",
@@ -48,25 +48,25 @@ const s = StyleSheet.create({
     marginTop: 12,
     fontSize: 18,
     fontWeight: "700",
-    color: colors.text,
+    color: color.text,
   },
   description: {
     marginTop: 6,
     fontSize: 14,
     lineHeight: 20,
     textAlign: "center",
-    color: colors.textMuted,
+    color: color.textSecondary,
   },
   button: {
     marginTop: 16,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: colors.accent,
+    backgroundColor: color.mint,
   },
   buttonText: {
     fontSize: 14,
     fontWeight: "700",
-    color: colors.text,
+    color: color.text,
   },
 });

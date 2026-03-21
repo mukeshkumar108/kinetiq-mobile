@@ -27,12 +27,6 @@ export function ProgressScreen() {
   const snapshot = today.data;
   const prog = progression.data;
 
-  const completedHabits =
-    snapshot?.habits.filter((h) => h.completedToday).length ?? 0;
-  const totalHabits = snapshot?.habits.length ?? 0;
-  const completedTasks =
-    snapshot?.tasks.filter((t) => t.status === "completed").length ?? 0;
-  const totalTasks = snapshot?.tasks.length ?? 0;
   const bestStreak = Math.max(
     ...(snapshot?.habits.map((h) => h.streak.longest) ?? [0]),
   );
@@ -96,17 +90,9 @@ export function ProgressScreen() {
 
         {/* XP Card */}
         <View style={s.heroCard}>
-          <View style={s.heroTopRow}>
-            <Text style={s.heroTitle}>
-              {prog ? `Level ${prog.level}` : "Loading..."}
-            </Text>
-            <View style={s.heroBadge}>
-              <Ionicons name="flash" size={14} color={color.cyan} />
-              <Text style={s.heroBadgeText}>
-                {completedHabits + completedTasks} done
-              </Text>
-            </View>
-          </View>
+          <Text style={s.heroTitle}>
+            {prog ? `Level ${prog.level}` : "Loading..."}
+          </Text>
 
           {prog ? (
             <>
@@ -139,26 +125,6 @@ export function ProgressScreen() {
               </View>
             </>
           ) : null}
-        </View>
-
-        {/* Quick stats */}
-        <View style={s.quickStatsRow}>
-          <View style={s.quickStatCard}>
-            <Text style={s.quickStatValue}>
-              {completedHabits}/{totalHabits}
-            </Text>
-            <Text style={s.quickStatLabel}>Habits</Text>
-          </View>
-          <View style={s.quickStatCard}>
-            <Text style={s.quickStatValue}>
-              {completedTasks}/{totalTasks}
-            </Text>
-            <Text style={s.quickStatLabel}>Tasks</Text>
-          </View>
-          <View style={s.quickStatCard}>
-            <Text style={s.quickStatValue}>{bestStreak}</Text>
-            <Text style={s.quickStatLabel}>Best streak</Text>
-          </View>
         </View>
 
         {/* Streak Calendar */}
@@ -207,28 +173,9 @@ const s = StyleSheet.create({
     gap: space.lg,
     ...cardShadow,
   },
-  heroTopRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: space.md,
-  },
   heroTitle: {
     ...font.headline,
     fontWeight: "700",
-  },
-  heroBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: space.sm,
-    paddingHorizontal: space.md,
-    paddingVertical: space.sm,
-    borderRadius: radius.full,
-    backgroundColor: color.cyanMuted,
-  },
-  heroBadgeText: {
-    ...font.label,
-    color: color.text,
   },
   xpReadout: {
     ...font.headline,
@@ -254,31 +201,6 @@ const s = StyleSheet.create({
   heroStatText: {
     ...font.label,
     color: color.text,
-  },
-
-  // Quick stats
-  quickStatsRow: {
-    flexDirection: "row",
-    gap: space.md,
-  },
-  quickStatCard: {
-    flex: 1,
-    backgroundColor: color.bgCard,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: color.border,
-    paddingHorizontal: space.md,
-    paddingVertical: space.lg,
-    ...cardShadow,
-  },
-  quickStatValue: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: color.text,
-  },
-  quickStatLabel: {
-    ...font.label,
-    marginTop: space.xs,
   },
 
   // Calendar

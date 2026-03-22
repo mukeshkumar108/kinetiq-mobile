@@ -37,7 +37,10 @@ export default function TabLayout() {
       <Tabs.Screen
         name="manage"
         options={{
-          href: null,
+          title: "Manage",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="layers-outline" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen

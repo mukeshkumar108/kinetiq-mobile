@@ -10,7 +10,6 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -328,11 +327,6 @@ export function HomeScreen() {
           />
         }
       >
-        {/* Menu */}
-        <Pressable style={s.menuButton} onPress={() => router.push("/manage")}>
-          <Ionicons name="menu" size={26} color={color.text} />
-        </Pressable>
-
         {/* Date + level */}
         <View style={s.infoStrip}>
           <Text style={s.dateText}>{dateStr}</Text>
@@ -643,10 +637,6 @@ const s = StyleSheet.create({
   },
 
   // Top
-  menuButton: {
-    alignSelf: "flex-start",
-    padding: space.xs,
-  },
   infoStrip: {
     flexDirection: "row",
     justifyContent: "space-between",

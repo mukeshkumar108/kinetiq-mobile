@@ -436,7 +436,7 @@ export function HomeScreen() {
                         <Text style={s.streakText}>{habit.streak.current}</Text>
                       </View>
                     ) : null}
-                    <Ionicons name="pencil-outline" size={13} color={color.textTertiary} style={s.editHint} />
+                    <Ionicons name="ellipsis-horizontal" size={13} color={color.textTertiary} style={s.editHint} />
                   </View>
                 </PressableScale>
               ))
@@ -481,7 +481,7 @@ export function HomeScreen() {
                       <Text style={s.rowSubtitle}>Done</Text>
                     ) : null}
                   </View>
-                  <Ionicons name="pencil-outline" size={13} color={color.textTertiary} />
+                  <Ionicons name="ellipsis-horizontal" size={13} color={color.textTertiary} />
                 </PressableScale>
               ))
             )}

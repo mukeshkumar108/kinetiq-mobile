@@ -217,7 +217,7 @@ export function ManageScreen() {
                   onPress={() => openEditHabit(habit)}
                   hitSlop={8}
                 >
-                  <Ionicons name="pencil-outline" size={18} color={color.textSecondary} />
+                  <Ionicons name="ellipsis-horizontal" size={18} color={color.textSecondary} />
                 </PressableScale>
                 <PressableScale
                   onPress={() => handleArchiveHabit(habit)}
